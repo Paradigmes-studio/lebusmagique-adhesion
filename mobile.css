@@ -1,0 +1,326 @@
+* {
+	font-size: 1em;
+	font-weight: 300;
+}
+
+html {
+}
+
+body {
+	margin: 0;
+	width: 100%;
+	border: None;
+	font-family: "Barlow Condensed";
+	font-size: 1.5em;
+}
+
+body.defaultback { 
+	background-color: #f8f4e8;
+	font-family: "Barlow Condensed", sans-serif !important;
+}
+
+input[type=submit]:not(:hover), input[type=button]:not(.letter_button):not(.letter_button_red):not(:hover) {
+	width: 100%;
+	background-position: center;
+	background-size: 100% 100%;
+	background-color: transparent;
+	color: black;
+	padding: 14px 20px;
+	margin: 8px 0;
+	border-style: solid;
+	border-width: 5px;
+	border-radius: 30px;
+	border-color: #e6534e;
+	cursor: pointer;
+	font-family: "Barlow Condensed", sans-serif;
+	font-weight: 600;
+}
+
+input[type=submit]:hover, input[type=button]:hover {
+	width: 100%;
+	background-position: center;
+	background-size: 100% 100%;
+	background-color: white;
+	color: black;
+	padding: 14px 20px;
+	margin: 8px 0;
+	border-style: solid;
+	border-width: 5px;
+	border-radius: 30px;
+	border-color: #e6534e;
+	cursor: pointer;
+	font-family: "Barlow Condensed", sans-serif;
+	font-weight: 600;
+}
+
+.TextError {
+	color: rgb(255,0,0) !important;
+	font-style: italic !important;
+}
+
+.title {
+	text-align: center !important;
+	font-size: 1.2em !important;
+}
+
+.spacer {
+	background-color: rgb(0,0,0);
+}
+
+
+.main { 
+	max-width: 500px; 
+	margin: auto;
+}
+
+.center {
+	text-align: center;
+}
+
+.left {
+	text-align: left;
+} 
+
+.padded {
+	padding-top: 0%;
+	padding-bottom: 0%;
+	padding-right: 10%;
+	padding-left: 10%;
+}
+
+input[type=text], input[type=email],input[type=number], input[type=password], input[type=date], input[type=time], select, .option {
+	width: 100%;
+	padding: 12px 20px;
+	margin: 8px 0;
+	display: inline-block;
+	border-radius: 1.5625rem;
+	box-sizing: border-box;
+	font-family: "Barlow Condensed", sans-serif;
+	background-color: white;	
+	border: none;
+}
+
+.FieldError {
+	width: 100%;
+	padding: 12px 20px;
+	margin: 8px 0;
+	display: inline-block;
+	border-radius: 1.5625rem;
+	box-sizing: border-box;
+	font-family: "Barlow Condensed", sans-serif;
+	background-color: white;	
+	border:solid !important;
+    border-width: 2px !important;
+    border-style: inset !important;
+	border-color:red !important;	
+}
+
+
+textarea {
+	width: 100%;
+	padding: 6px 6px;
+	margin: 8px 0;
+	display: inline-block;
+	font-family: "Barlow Condensed", sans-serif;
+	box-sizing: border-box;
+	font-family: "Barlow Condensed", sans-serif;
+	background-color: white;
+	border: none !important;
+}
+1
+td input[type="number"] {
+	padding: 0;
+	margin: 0;
+	border: none;
+	font-family: arial;
+	background-color: white; 
+	text-align: right;
+}
+
+input[type=text].tinycell, input[type=number].tinycell, input[type=password].tinycell, input[type=date].tinycell, select.tinycell {
+	width: 100%;
+	padding: 12px 2px;
+	margin: 8px 0;
+	display: inline-block;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	box-sizing: border-box;
+	font-family: arial;
+	font-size: 0.7em;
+} 
+
+input[type=submit].tinybutton, input[type=button].tinybutton {
+	width: 200px;
+	background-image: url('res/button-back.png');
+	background-position: center;
+	background-size: 100% 100%;
+	background-color: transparent;
+	color: white;
+	border: none;
+	cursor: pointer;
+	font-size: 0.7em;
+} 
+
+.list { 
+	font-size: 0.8em
+}
+
+.list table {
+	width: 100%;
+}
+
+.list td
+{
+	background-color: rgba(255,255,255,1);
+}
+
+.list th {
+	/*background-color: rgba(255, 255, 255, .3);*/
+	border-bottom: 1px solid black;
+	color: rgba(50,50,50);
+}
+
+.list tr {
+	line-height: 2;
+	color: rgba(55,55,55);
+}
+
+.list a {
+	text-decoration: none;
+}
+
+.letter_button { 
+	padding: 7px;
+	color: black;
+	margin: 2%;
+	background-color: white;
+	color: black;
+	font-weight: bold;
+	font-size: 1.2em;
+}
+	
+.letter_button_red {
+	padding: 7px;
+	color: black;
+	margin: 2%;
+	background-color: white;
+	color: red;
+	font-weight: bold;
+	font-size: 1.2em;
+}
+
+
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 100px;
+  height: 34px;
+}
+
+
+.tabu {
+	padding-left:20%; 
+	padding-top:5px; 
+	padding-bottom:5px
+}
+
+.switch input {display:none;}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ca2222;
+  -webkit-transition: .4s;
+  transition: .4s;
+   border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #2ab934;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(65px);
+}
+
+/*------ ADDED CSS ---------*/
+.slider:after
+{
+ content:'Non';
+ color: white;
+ display: block;
+ position: absolute;
+ transform: translate(-50%,-50%);
+ top: 50%;
+ left: 50%;
+ font-size: 0.8em;
+ font-family: Verdana, sans-serif;
+}
+
+input:checked + .slider:after
+{  
+  content:'Oui';
+}
+
+
+
+.do_not_hide_stupid_ad_block_gdpr {
+	width:100%;
+	height:30%;
+	font-size: 0.5em;
+}
+
+.text {
+	font-color: rgba(50, 50, 50, 1);
+}
+
+.subtotal {
+	font-style: italic;
+}
+
+.total {
+	font-style: italic;
+	font-weight: bold;
+}
+
+.number {
+	text-align: right;
+} 
+
+fieldset {
+    margin: 8px;
+    border: 1px solid black;
+    padding: 8px; 
+    border-radius: 10px;
+}
+
+legend{
+    padding: 2px; 
+    margin: 0 auto;
+    font-weight:400;
+    font-style: italic;
+}

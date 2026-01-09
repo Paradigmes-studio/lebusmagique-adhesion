@@ -27,4 +27,4 @@ jobs:
       - name: "Deploy to remote server"
         run: |
           source .github/.env.ci
-          rsync -avzP -e 'ssh' --delete --exclude='.github' --exclude='.git' . ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:applications/$APP_SYS_USR/public_html/adhesion
+          rsync -avzP -e 'ssh' --exclude='.github' --exclude='.git' . ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:applications/$APP_SYS_USR/public_html/adhesion

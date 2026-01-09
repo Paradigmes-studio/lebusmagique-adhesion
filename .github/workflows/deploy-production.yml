@@ -18,6 +18,5 @@ jobs:
             host: ${{ secrets.FTP_HOST_PROD }}
             username: ${{ secrets.FTP_USERNAME_PROD }}
             password: ${{ secrets.FTP_PASSWORD_PROD }}
-            forceSsl: "true"
             localDir: .
             remoteDir: www/adhesion

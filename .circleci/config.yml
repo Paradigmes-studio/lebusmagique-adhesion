@@ -1,0 +1,106 @@
+version: 2.1
+
+parameters:
+  wp_theme_name:
+    type: string
+    default: busmagique
+  wp_folder:
+    type: string
+    default: applications/$APP_SYS_USR/public_html
+
+executors:
+  base-executor:
+    docker:
+      - image: cimg/base:current
+
+commands:
+  setup-ssh:
+    description: Setup SSH for server connexion
+    parameters:
+      host:
+        type: env_var_name
+        default: SERVER_HOST
+    steps:
+      - run:
+          name: Add server ip to known hosts
+          command: |
+            ssh-keyscan ${<< parameters.host >>} >> ~/.ssh/known_hosts
+
+      - run:
+          name: Install sshpass and rsync
+          command: |
+            sudo apt update
+            sudo apt install rsync
+
+  deploy-adhesion:
+    description: Send adhesion code to Staging server
+    parameters:
+      host:
+        type: env_var_name
+        default: SERVER_HOST
+      username:
+        type: env_var_name
+        default: SERVER_USERNAME
+      wp_folder:
+        type: string
+        default: << pipeline.parameters.wp_folder >>
+    steps:
+      - run:
+          name: Copy adhesion code to server
+          command: |
+            source .circleci/.env
+            rsync -av -e ssh --exclude='.circleci' --exclude='.git' . ${<< parameters.username >>}@${<< parameters.host >>}:<< parameters.wp_folder >>/adhesion
+
+  # As to deploy throug a specific job, because OVH server doesnt support SSH (so we have to use LFTP through SFTP)
+  deploy-adhesion-prod:
+    description: Send adhesion code to Production server
+    steps:
+      - run:
+          name: Install LFTP
+          command: |
+            sudo apt update
+            sudo apt install lftp
+      - run:
+          name: Copy adhesion code to server
+          command: |
+            lftp ftp://${PROD_SERVER_USERNAME}:${PROD_SERVER_PASSWORD}@${PROD_SERVER_HOST} -e "mirror -e -R -x .circleci -x .git . www/adhesion ; quit"
+
+jobs:
+  deploy-staging:
+    description: Deploy on staging server
+    executor: base-executor
+    resource_class: small
+    steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - "f9:f6:36:79:f2:dd:46:7a:91:74:ec:73:35:95:4f:35"
+      - setup-ssh
+      - deploy-adhesion
+
+  deploy-prod:
+    description: Deploy on production server
+    executor: base-executor
+    resource_class: small
+    steps:
+      - checkout
+      - deploy-adhesion-prod
+
+workflows:
+  staging:
+    jobs:
+      - deploy-staging:
+          context: dev
+          filters:
+            branches:
+              only:
+                - develop
+
+  production:
+    jobs:
+      - deploy-prod:
+          context: dev
+          filters:
+            branches:
+              only:
+                - main

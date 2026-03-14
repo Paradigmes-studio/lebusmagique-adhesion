@@ -33,10 +33,49 @@ class mAdhesionClient {
 		}
 	}
 	
-	public function search($where) {
-		$query = $this->conn->prepare("SELECT * FROM adh_adhesion_client " . $where);
-		$query->execute();
-		
+	public function search($filters) {
+		$conditions = [];
+		$params = [];
+		$orderby = "";
+
+		if (!empty($filters['last_name'])) {
+			$conditions[] = 'soundex(last_name)=soundex(:last_name)';
+			$params[':last_name'] = $filters['last_name'];
+			$orderby = " ORDER BY strcmp(last_name, :last_name_order) DESC, last_name";
+			$params[':last_name_order'] = $filters['last_name'];
+		}
+		if (!empty($filters['first_name'])) {
+			$conditions[] = 'soundex(first_name)=soundex(:first_name)';
+			$params[':first_name'] = $filters['first_name'];
+			$orderby = " ORDER BY strcmp(first_name, :first_name_order) DESC, first_name";
+			$params[':first_name_order'] = $filters['first_name'];
+		}
+		if (!empty($filters['email'])) {
+			$conditions[] = 'email = :email';
+			$params[':email'] = $filters['email'];
+		}
+		if (!empty($filters['adherent_id'])) {
+			$conditions[] = 'id = :adherent_id';
+			$params[':adherent_id'] = $filters['adherent_id'];
+		}
+		if (!empty($filters['date_from'])) {
+			$conditions[] = 'date_debut >= :date_from';
+			$params[':date_from'] = $filters['date_from'];
+		}
+		if (!empty($filters['date_to'])) {
+			$conditions[] = 'date_debut <= :date_to';
+			$params[':date_to'] = $filters['date_to'];
+		}
+
+		$sql = "SELECT * FROM adh_adhesion_client";
+		if (!empty($conditions)) {
+			$sql .= " WHERE " . implode(' AND ', $conditions);
+		}
+		$sql .= $orderby;
+
+		$query = $this->conn->prepare($sql);
+		$query->execute($params);
+
 		$adhesion_clients=array();
 		while ($res=$query->fetch()) {
 			$adhesion_client=new adhesionClient();
@@ -51,7 +90,7 @@ class mAdhesionClient {
 			$adhesion_client->new = false;
 
 			array_push($adhesion_clients, $adhesion_client);
-		} 
+		}
 		return $adhesion_clients;
 	}
 

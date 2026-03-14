@@ -61,8 +61,8 @@ class MailChimpHandler {
 			}
 			echo "mailchimp: ".$msg ."</br>Param - $apiKey=".$apiKey. " - $listId=" . $listId . " - $email=".$email ;
 
-		if ($msg = "")
-			return true;	
+		if ($msg == "")
+			return true;
 		else
 			return false;
 	} 

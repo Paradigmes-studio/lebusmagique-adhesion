@@ -11,8 +11,9 @@ if (($_POST['new']) && ($_POST['password'] == '')) {
 	$err = "Password required";
 } 
 if ($err != '') {
-	header(sprintf('Location: editUser.php?error=%s', $err)); 
-} 
+	header(sprintf('Location: editUser.php?error=%s', urlencode($err)));
+	exit();
+}
 $edited_user = new User();
 
 $u = new mUser($conn, $conf);

@@ -17,13 +17,12 @@ require_once("get_login_info.php"); // if not, redirect
 <?php
 
 	$error = isset($_GET['error']);
+	printf('<p><input maxlength="200" type="password" name="password1" placeholder="Nouveau mot de passe" /></p>');
 	if ($error) {
-		printf('<p><input maxlength="200" type="password" name="password1" value="%s" placeholder="Nouveau mot de passe" /></p>', $_GET['mdp']);
-		printf('<text class = "TextError">%s</text><br/>', $_GET['error']);
+		printf('<text class = "TextError">%s</text><br/>', htmlspecialchars($_GET['error']));
 		printf('<p><input class="FieldError" maxlength="200" type="password" name="password2" placeholder="Confirmation" /></p>');
 	} else {
-		printf('<p><input maxlength="200" type="password" name="password1" placeholder="Nouveau mot de passe" /></p>');
-		printf('<p><input maxlength="200" type="password" name="password2" placeholder="Confirmation" /></p>'); 
+		printf('<p><input maxlength="200" type="password" name="password2" placeholder="Confirmation" /></p>');
 	}
 
 ?>

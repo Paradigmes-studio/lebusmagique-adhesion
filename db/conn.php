@@ -157,7 +157,7 @@ function get_dev($conf) {
 }
 
 function get_conn($conf) {
-	return get_conn_attributes(sprintf('mysql:host=%s;dbname=%s', $conf['ip_mysql'], $conf['db_name_mysql']), $conf['user_mysql'], $conf['password_mysql'], $conf);
+	return get_conn_attributes(sprintf('mysql:host=%s;dbname=%s;charset=utf8mb4', $conf['ip_mysql'], $conf['db_name_mysql']), $conf['user_mysql'], $conf['password_mysql'], $conf);
 } 
 
 function find_in_conf($conf, $param, &$msg) {

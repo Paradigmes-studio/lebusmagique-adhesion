@@ -25,8 +25,8 @@ require_once("get_login_info.php"); // if not, redirect
 		}
 	} 
 	if (!$new) {
-		printf('<div class="text">Login: <i>%s</i></div>', $edited_user->login);
-		printf('<input type="hidden" name="login" value="%s">', $edited_user->login);
+		printf('<div class="text">Login: <i>%s</i></div>', htmlspecialchars($edited_user->login));
+		printf('<input type="hidden" name="login" value="%s">', htmlspecialchars($edited_user->login));
 	} else {
 		print('<input maxlength="50" type="text" name="login" placeholder="Nom"/>');
 		printf('<input type="hidden" name="new" value="1">');

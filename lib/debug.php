@@ -5,6 +5,9 @@
 #}
 
 class Debug {
+	private $conn;
+	private $conf;
+
 	public function __construct($conn, $conf) {
 		$this->conn = $conn;
 		$this->conf = $conf;

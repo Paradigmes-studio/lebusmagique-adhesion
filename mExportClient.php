@@ -17,11 +17,13 @@ $file = fopen('php://output', 'w');
 // send the column headers
 fputcsv($file, array('N° adhérent', 'Prénom', 'Nom', 'email', 'Type adhésion', 'date de début', 'date de fin', 'newsletter'));
  
- $where = 'where date_debut>="' . $_POST['begining'] . '" and date_debut<="' . $_POST['end'] . '"';
+$filters = [
+	'date_from' => $_POST['begining'],
+	'date_to' => $_POST['end'],
+];
 
-//Liste des adhérent 
 $ac = new mAdhesionClient($conn, $conf);
-$adhesions = $ac->search($where);
+$adhesions = $ac->search($filters);
 
 //Remplissage du tableau
 foreach($adhesions as $adhesion)

@@ -93,7 +93,7 @@ if (!$new) {
 			if (!isset($_GET['lastName']))
 				printf('<input type="text" maxlength="200" name="adhesion_type" value="%s" placeholder="Type d\'adhésion"/>', $adhesion_client->adhesion_type); 
 			else
-				printf('<input type="text" maxlength="200" name="adhesion_type" value="%s" placeholder="Type d\'adhésion"/>', $_GET['typeAdhesion']); 
+				printf('<input type="text" maxlength="200" name="adhesion_type" value="%s" placeholder="Type d\'adhésion"/>', $_GET['typeAdhesion'] ?? '');
 		
 	}
 	
@@ -107,32 +107,32 @@ if (!$new) {
 		if ((!$new) && (!isset($_GET['lastName'])))
 			printf('<input type="text" maxlength="200" name="last_name" value="%s" placeholder="Nom"/>', $adhesion_client->last_name); 
 		else
-			printf('<input type="text" maxlength="200" name="last_name" value="%s" placeholder="Nom"/>', $_GET['lastName']); 
+			printf('<input type="text" maxlength="200" name="last_name" value="%s" placeholder="Nom"/>', $_GET['lastName'] ?? '');
 
 	//print('Prénom<br/>');
 	$first_name_err = isset($_GET['firstNameErr']);
 	if ($first_name_err) {
 		printf('<text class = "TextError">%s</text><br/>', $_GET['firstNameErr']);
-		printf('<input type="text" class="FieldError" maxlength="200" name="first_name" value="%s" placeholder="Prénom"/>', $_GET['firstName']); 
+		printf('<input type="text" class="FieldError" maxlength="200" name="first_name" value="%s" placeholder="Prénom"/>', $_GET['firstName']);
 	} else
 		if ((!$new) && (!isset($_GET['firstName'])))
-			printf('<input type="text" maxlength="200" name="first_name" value="%s" placeholder="Prénom"/>', $adhesion_client->first_name); 
+			printf('<input type="text" maxlength="200" name="first_name" value="%s" placeholder="Prénom"/>', $adhesion_client->first_name);
 		else
-			printf('<input type="text" maxlength="200" name="first_name" value="%s" placeholder="Prénom"/>', $_GET['firstName']); 
+			printf('<input type="text" maxlength="200" name="first_name" value="%s" placeholder="Prénom"/>', $_GET['firstName'] ?? '');
 
-	//print('Email<br/>');		
+	//print('Email<br/>');
 	$email_err = isset($_GET['emailErr']);
 	if ($email_err) {
 		printf('<text class = "TextError">%s</text><br/>', $_GET['emailErr']);
-		printf('<input type="text" class="FieldError" maxlength="200" name="email" value="%s" placeholder="Email"/>', $_GET['email']); 
+		printf('<input type="text" class="FieldError" maxlength="200" name="email" value="%s" placeholder="Email"/>', $_GET['email']);
 	} else
 		if ((!$new) && (!isset($_GET['email'])))
-			printf('<input type="text" maxlength="200" name="email" value="%s" placeholder="Email"/>', $adhesion_client->email); 
+			printf('<input type="text" maxlength="200" name="email" value="%s" placeholder="Email"/>', $adhesion_client->email);
 		else
-			printf('<input type="text" maxlength="200" name="email" value="%s" placeholder="Email"/>', $_GET['email']); 
+			printf('<input type="text" maxlength="200" name="email" value="%s" placeholder="Email"/>', $_GET['email'] ?? '');
 
 	//recevoir newsletter
-	if (((!$new) && ($adhesion_client->newsletter == 1)) || (($new) && ($_GET['subscribe'] == "on")) || (($new) && (!isset($_GET['subscribe']))))
+	if (((!$new) && ($adhesion_client->newsletter == 1)) || (($new) && (($_GET['subscribe'] ?? '') == "on")) || (($new) && (!isset($_GET['subscribe']))))
 		$checked = "unchecked";
 	else
 		$checked = "";
@@ -148,7 +148,7 @@ if (!$new) {
 			printf('<text class = "TextError">%s</text><br/>', $_GET['codeValidErr']);
 			printf('<input type="text" class="FieldError" maxlength="200" name="code_valid" value="%s" placeholder="Code de validation"/>', $_GET['codeValid']); 
 		} else
-			printf('<input type="text" maxlength="200" name="code_valid" value="%s" placeholder="Code de validation"/>', $_GET['codeValid']); 
+			printf('<input type="text" maxlength="200" name="code_valid" value="%s" placeholder="Code de validation"/>', $_GET['codeValid'] ?? '');
 		
 		printf('<p><input type="submit" id="submit" value="Adhérer"/></p>');
 	} else {

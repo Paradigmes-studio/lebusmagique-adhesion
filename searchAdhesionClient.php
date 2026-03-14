@@ -22,16 +22,16 @@ require_once("init.php");
 <?php
 
 	print('N° adhérent<br/>');
-	printf('<input type="text" maxlength="10" name="adherent_id" value="%s" placeholder="N° adhérent"/>', $_GET['idAdherent']); 
+	printf('<input type="text" maxlength="10" name="adherent_id" value="%s" placeholder="N° adhérent"/>', $_GET['idAdherent'] ?? '');
 
 	print('Nom<br/>');
-	printf('<input type="text" maxlength="200" name="last_name" value="%s" placeholder="Nom"/>', $_GET['lastName']); 
+	printf('<input type="text" maxlength="200" name="last_name" value="%s" placeholder="Nom"/>', $_GET['lastName'] ?? '');
 
 	print('Prénom<br/>');
-	printf('<input type="text" maxlength="200" name="first_name" value="%s" placeholder="Prénom"/>', $_GET['firstName']); 
+	printf('<input type="text" maxlength="200" name="first_name" value="%s" placeholder="Prénom"/>', $_GET['firstName'] ?? '');
 
-	print('Email<br/>');		
-	printf('<input type="text" maxlength="200" name="email" value="%s" placeholder="Email"/>', $_GET['email']); 
+	print('Email<br/>');
+	printf('<input type="text" maxlength="200" name="email" value="%s" placeholder="Email"/>', $_GET['email'] ?? '');
 
 ?>
 <p><input type="submit" value="Rechercher"/></p>

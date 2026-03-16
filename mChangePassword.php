@@ -7,7 +7,7 @@ if ($_POST['password1'] == $_POST['password2']) {
 	$user->set_password($_POST['password1']);
 	$u = new mUser($conn, $conf);
 	$u->write($user);
-	header('Location: main.php?info=Password%20updated');
+	header('Location: main.php?info=Mot de passe mis à jour');
 } else {
 	header('Location: changePassword.php?error=Les deux mots de passe ne sont pas identiques');
 }

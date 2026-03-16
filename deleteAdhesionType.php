@@ -9,10 +9,10 @@ $tt = new AdhesionType();
 $t->read($id, $tt);
 
 if ($t->get_used_in_adhesion_client($id)) {
-	header(sprintf('Location: listAdhesionType.php?error=Cannot remove %s, in use', $tt->name)); 
-} else { 
+	header(sprintf('Location: listAdhesionType.php?error=Impossible de supprimer %s, type utilisé', urlencode($tt->name)));
+} else {
 	$t->delete_by_id($_GET['id']);
-	header(sprintf('Location: listAdhesionType.php?info=Adhesion Type %s removed', $tt->name)); 
+	header(sprintf('Location: listAdhesionType.php?info=Type %s supprimé', urlencode($tt->name))); 
 }
 
 ?>

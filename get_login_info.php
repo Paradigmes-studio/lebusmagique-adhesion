@@ -1,4 +1,5 @@
 <?php
+require_once("db/user.php");
 $user=NULL;
 if (isset($_SESSION)) {
 	if (isset($_SESSION[$domain.'user'])) {
@@ -6,7 +7,7 @@ if (isset($_SESSION)) {
 	}
 }
 if ($user==NULL) {
-	header('Location: login.php?error=Disconnected');
+	header('Location: login.php?error=Session expirée');
 	exit();
 }
 

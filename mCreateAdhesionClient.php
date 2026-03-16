@@ -131,8 +131,11 @@ $result = true;
 /********************************/
 if (($new) || (($_POST['carte'] == "on"))) {
 	
-	if (unlink("res/Carte". $edited_adhesion_client->id .".jpg"))
-		while (file_exists("res/Carte". $edited_adhesion_client->id .".jpg"));
+	$carteFile = "res/Carte". $edited_adhesion_client->id .".jpg";
+	if (file_exists($carteFile)) {
+		unlink($carteFile);
+		while (file_exists($carteFile));
+	}
 	
 	$i = new ImageCarteAdhesion();
 	$result = $i->generate($edited_adhesion_client);

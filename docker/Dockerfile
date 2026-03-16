@@ -10,4 +10,6 @@ RUN apt-get update && apt-get install -y \
 
 RUN a2enmod rewrite
 
+RUN mkdir -p /var/www/html/res && chown www-data:www-data /var/www/html/res
+
 ENV APACHE_DOCUMENT_ROOT=/var/www/html

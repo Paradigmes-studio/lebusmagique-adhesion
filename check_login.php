@@ -24,7 +24,7 @@ if (file_exists($rate_file)) {
 }
 
 if (count($attempts) >= $max_attempts) {
-	header('Location: login.php?error=Too many attempts, try again later');
+	header('Location: login.php?error=Trop de tentatives, réessaie plus tard');
 	exit();
 }
 
@@ -50,7 +50,7 @@ if ($user !== null) {
 $attempts[] = time();
 file_put_contents($rate_file, json_encode($attempts), LOCK_EX);
 
-header('Location: login.php?error=Wrong id/password');
+header('Location: login.php?error=Identifiant ou mot de passe incorrect');
 exit();
 
 ?>

@@ -17,12 +17,15 @@ class EmailHandler {
 	}
 	
 	private function init_email_smtp($email) {
-		$email->IsSMTP(); // telling the class to use SMTP
-		$email->SMTPAuth = true;
+		$email->IsSMTP();
 		$email->Host = $this->conf['smtp_server'];
 		$email->Port = $this->conf['smtp_port'];
-		$email->Username = $this->conf['smtp_username'];
-		$email->Password = $this->conf['smtp_password'];
+		if (!empty($this->conf['smtp_username'])) {
+			$email->SMTPAuth = true;
+			$email->SMTPSecure = 'tls';
+			$email->Username = $this->conf['smtp_username'];
+			$email->Password = $this->conf['smtp_password'];
+		}
 		$email->SetFrom($this->conf['email_from'], $this->conf['name_company']);
 		#$email->SMTPDebug = true;
 	} 

@@ -20,14 +20,14 @@ $t = new mMailchimpTag($conn, $conf);
 function addRow() {
 	var row = tableTags.insertRow();
 
-	var cell = row.insertCell(); 
+	var cell = row.insertCell();
 	cell.innerHTML = '<input class="name" type="text" placeholder="Nom du tag"/><input class="idtag" type="hidden"/>';
 
 	var cell = row.insertCell();
 	cell.innerHTML = '<label class="switch"><input class="active" name="subscribe" type="checkbox"><span class="slider round"></span></label>';
 
 	var cell = row.insertCell();
-	cell.innerHTML = '<button type="button" onClick="confirmDeleteRow(this)" class="letter_button_red">X</button>';
+	cell.innerHTML = '<button type="button" onClick="confirmDeleteRow(this)" class="result-card-delete" style="border:none;background:none;color:#e6534e;font-size:1.2em;cursor:pointer">&#10005;</button>';
 
 	return row;
 }
@@ -73,31 +73,25 @@ function tagsArrayToTable() {
 } 
 </script>
 </head>
-<body class="defaultback"> 
-<div class="main">
+<body class="defaultback">
+<div class="page">
+<div class="page-title">Tags MailChimp</div>
+
 <form action="mTagMailchimp.php" onsubmit="tagsTableToArray()" method="POST">
-<?php
-	print('</br><text class="title">Gestion des tags MailChimp</text><br/><br/><br/>');
-	
-?>
 	<input type="hidden" name="tags" id="inputTags" />
-	<table style="none; width: 100%;" id="tableTags">
-		<tr> 
+	<table id="tableTags" class="tag-table">
+		<tr>
 			<th>Nom</th>
-			<th>Active</th> 
-			<th>Suppr</th> 
+			<th>Actif</th>
+			<th></th>
 		</tr>
 	</table>
 
-
-<button style="margin-right:0px" type="button" onClick="addRow()" class="letter_button">+</button>
-
-<div class="padded">
+<p><a href="#" onclick="addRow();return false;" class="btn btn--add">+ Nouveau tag</a></p>
 <p><input type="submit" value="Enregistrer"/></p>
+<p><a href="main.php" class="page-back">Retour</a></p>
 </form>
-<p><input type="button" onclick="location.href='main.php';" value="Retour" /></p> 
-</div> 
-</div> 
+</div>
 </body>
 <script>
 tagsArrayToTable();

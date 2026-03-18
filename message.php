@@ -19,19 +19,24 @@ require_once("init.php");
 <body class="defaultback"> 
 <div class="form padded main">
 <?php
-	$title = $_GET['title'];
-	$text = $_GET['text'];
-	$buttonName = $_GET['buttonName'];
-	$nextPage = $_GET['nextPage'];
-	$adhesionId = $_GET['adhesionId'];
+	$title = htmlspecialchars($_GET['title'] ?? '');
+	$text = htmlspecialchars($_GET['text'] ?? '');
+	$buttonName = htmlspecialchars($_GET['buttonName'] ?? '');
+	$nextPage = $_GET['nextPage'] ?? 'main.php';
+	$adhesionId = (int)($_GET['adhesionId'] ?? 0);
 
-	printf('</br><text class="title">%s</text><br/><br/><br/>',$title);	
-	
-	printf('<text>%s</text>',$text);
-	printf('<div style="text-align:center !important;"><br><img src="http://lebusmagiquelille.fr/adhesion/res/Carte%s.jpg" style="width:300px !important;text-align:center !important;"/></div>', $adhesionId);
-	//printf('<p>http://lebusmagiquelille.fr/adhesion/res/Carte%s.jpg</p>', $adhesionId);
-	
-	printf('<p><input type="button" onclick="location.href=\'%s\';" value="%s" /></p>',$nextPage,$buttonName); 
+	// Whitelist des pages internes autorisees
+	$allowedPages = ['main.php', 'createAdhesionClient.php', 'searchAdhesionClient.php', 'listAdhesionClient.php', 'login.php', 'tagMailchimp.php'];
+	if (!in_array(parse_url($nextPage, PHP_URL_PATH), $allowedPages)) {
+		$nextPage = 'main.php';
+	}
+
+	printf('</br><text class="title">%s</text><br/><br/><br/>', $title);
+
+	printf('<text>%s</text>', $text);
+	printf('<div style="text-align:center !important;"><br><img src="http://lebusmagiquelille.fr/adhesion/res/Carte%d.jpg" style="width:300px !important;text-align:center !important;"/></div>', $adhesionId);
+
+	printf('<p><input type="button" onclick="location.href=\'%s\';" value="%s" /></p>', htmlspecialchars($nextPage), $buttonName); 
 
 ?>
 </div>
@@ -50,6 +55,8 @@ require_once("init.php");
 require_once('config.php');
 
 Class Display {
+	private $conn;
+	private $conf;
 
 	public function __construct($conn, $conf) {
 		$this->conn = $conn;

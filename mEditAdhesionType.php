@@ -6,7 +6,7 @@ require_once("get_login_info.php"); // if not, redirect
 
 $err=""; 
 if ($_POST['name'] == '') {
-	$err = "Name required";
+	$err = "Nom requis";
 }
 
 if ($err != '') {
@@ -18,7 +18,7 @@ $t = new mAdhesionType($conn, $conf);
 
 if (!$_POST['new']) {
 	if (!$t->read($_POST['id'], $edited_adhesion_type)) {
-		header('Location: editAdhesionType.php?error=Adhesion not found');
+		header('Location: editAdhesionType.php?error=Type introuvable');
 		exit;
 	}
 } 

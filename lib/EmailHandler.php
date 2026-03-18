@@ -17,12 +17,15 @@ class EmailHandler {
 	}
 	
 	private function init_email_smtp($email) {
-		$email->IsSMTP(); // telling the class to use SMTP
-		$email->SMTPAuth = true;
+		$email->IsSMTP();
 		$email->Host = $this->conf['smtp_server'];
 		$email->Port = $this->conf['smtp_port'];
-		$email->Username = $this->conf['smtp_username'];
-		$email->Password = $this->conf['smtp_password'];
+		if (!empty($this->conf['smtp_username'])) {
+			$email->SMTPAuth = true;
+			$email->SMTPSecure = 'tls';
+			$email->Username = $this->conf['smtp_username'];
+			$email->Password = $this->conf['smtp_password'];
+		}
 		$email->SetFrom($this->conf['email_from'], $this->conf['name_company']);
 		#$email->SMTPDebug = true;
 	} 
@@ -100,22 +103,26 @@ class EmailHandler {
 		}
 	}
 */
-	public function send_adhesion($adhesionClient, $model, &$error) { 
-		
+	public function send_adhesion($adhesionClient, $model, &$error) {
+
 		// email for the client
 		$error = "";
-		$recipient = $adhesionClient->email; 
+		$recipient = $adhesionClient->email;
 		$subject = "Bienvenue à bord Moussaillon!";
 		$body = "";
 		$conf = $this->conf;
 
-		$file = $this->models_dir.'/'.$model;
+		// Validate model against whitelist of existing files
+		$allowed_models = $this->get_models();
+		if (!in_array($model, $allowed_models, true)) {
+			$error = "Invalid email model";
+			return;
+		}
+
+		$file = $this->models_dir.'/'.basename($model);
 		if (substr($file, -5) == '.html') {
 			$body = file_get_contents($file);
-		} 
-		if (substr($file, -4) == '.php') {
-			include($file); // TODO security leak ?
-		} 
+		}
 
 		$email=new PHPMailer(true);
 		$error="";

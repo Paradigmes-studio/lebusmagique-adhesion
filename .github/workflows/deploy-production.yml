@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Remove files that should not be deployed
+        run: rm -f config.php config.dist.php
+
       - name: Upload files to FTP
         uses: matteodf/lftp-upload@v1.1.0
         with:

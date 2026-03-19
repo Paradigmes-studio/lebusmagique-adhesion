@@ -7,8 +7,38 @@ on:
 
 jobs:
   test:
-    name: "Run tests"
-    uses: ./.github/workflows/test.yml
+    name: "PHPUnit tests"
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: adhesion
+          MYSQL_USER: adhesion
+          MYSQL_PASSWORD: adhesion
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, gd
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: Prepare config
+        run: |
+          cp config.dist.php config.php
+          sed -i 's/"ip_mysql"=>"database"/"ip_mysql"=>"127.0.0.1"/' config.php
+          sed -i 's/"smtp_server"=>"mailpit"/"smtp_server"=>"localhost"/' config.php
+      - name: Run tests
+        run: vendor/bin/phpunit
 
   deploy:
     name: "Deploy on production server"

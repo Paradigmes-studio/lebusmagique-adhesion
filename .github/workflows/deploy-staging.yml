@@ -6,8 +6,13 @@ on:
       - develop
 
 jobs:
-  deploy-theme:
+  test:
+    name: "Run tests"
+    uses: ./.github/workflows/test.yml
+
+  deploy:
     name: "Deploy on staging server"
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,4 +32,27 @@ jobs:
       - name: "Deploy to remote server"
         run: |
           source .github/.env.ci
-          rsync -avzP -e 'ssh' --exclude='.github' --exclude='.git' --exclude='config.php' --exclude='config.dist.php' . ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:applications/$APP_SYS_USR/public_html/adhesion
+          rsync -avzP -e 'ssh' --exclude='.github' --exclude='.git' --exclude='config.php' --exclude='config.dist.php' --exclude='vendor' --exclude='tests' --exclude='phpunit.xml' --exclude='composer.json' --exclude='githooks' . ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:applications/$APP_SYS_USR/public_html/adhesion
+
+  smoke-test:
+    name: "Post-deploy smoke tests"
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check login page is accessible
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagique.paradigmes.studio/adhesion/login.php" --max-time 10)
+          echo "Login page returned HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "SMOKE TEST FAILED: login page is not accessible"
+            exit 1
+          fi
+
+      - name: Check static resources
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagique.paradigmes.studio/adhesion/mobile.css" --max-time 10)
+          echo "CSS returned HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "SMOKE TEST FAILED: mobile.css is not accessible"
+            exit 1
+          fi

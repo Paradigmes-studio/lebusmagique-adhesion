@@ -504,7 +504,8 @@ legend{
 }
 
 .result-card--expired {
-	border-left: 4px solid #e6534e;
+	border-left: 4px solid #c53030;
+	background: #fde8e8;
 }
 
 .result-card-body {

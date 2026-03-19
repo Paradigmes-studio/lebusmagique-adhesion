@@ -3,8 +3,9 @@
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-install: ## First-time setup: copy config and start containers
+install: ## First-time setup: copy config, install hooks and start containers
 	@test -f config.php || cp config.dist.php config.php
+	@git config core.hooksPath githooks
 	@$(MAKE) up
 
 up: ## Start containers
@@ -25,6 +26,9 @@ shell: ## Open a shell in the PHP container
 db: ## Open a MySQL shell
 	docker compose exec database mysql -u adhesion -padhesion adhesion
 
+test: ## Run PHPUnit tests in Docker
+	docker compose exec app bash -c "cd /var/www/html && composer install --quiet && vendor/bin/phpunit"
+
 fixtures: ## Load test fixtures into the database
 	docker compose exec -T database mysql -u adhesion -padhesion adhesion < docker/fixtures.sql
 
@@ -32,4 +36,4 @@ reset-db: ## Destroy and recreate the database volume
 	docker compose down -v
 	@$(MAKE) up
 
-.PHONY: help install up down build logs shell db fixtures reset-db
+.PHONY: help install up down build logs shell db test fixtures reset-db

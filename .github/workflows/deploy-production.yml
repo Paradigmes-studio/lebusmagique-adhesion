@@ -6,14 +6,22 @@ on:
       - main
 
 jobs:
-  deploy-theme:
+  test:
+    name: "Run tests"
+    uses: ./.github/workflows/test.yml
+
+  deploy:
     name: "Deploy on production server"
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Remove files that should not be deployed
-        run: rm -f config.php config.dist.php
+        run: rm -f config.php config.dist.php composer.json phpunit.xml
+
+      - name: Remove dev directories
+        run: rm -rf tests vendor githooks
 
       - name: Upload files to FTP
         uses: matteodf/lftp-upload@v1.1.0
@@ -23,3 +31,35 @@ jobs:
             password: ${{ secrets.FTP_PASSWORD_PROD }}
             localDir: .
             remoteDir: www/adhesion
+
+  smoke-test:
+    name: "Post-deploy smoke tests"
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check login page is accessible
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/login.php" --max-time 10)
+          echo "Login page returned HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "SMOKE TEST FAILED: login page is not accessible"
+            exit 1
+          fi
+
+      - name: Check main page redirects (auth required)
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/main.php" --max-time 10)
+          echo "Main page returned HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" -eq 500 ]; then
+            echo "SMOKE TEST FAILED: main page returns 500"
+            exit 1
+          fi
+
+      - name: Check static resources
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/mobile.css" --max-time 10)
+          echo "CSS returned HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "SMOKE TEST FAILED: mobile.css is not accessible"
+            exit 1
+          fi

@@ -31,9 +31,9 @@ if (count($attempts) >= $max_attempts) {
 $user=new User();
 $u=new mUser($conn, $conf);
 
-$u->read($_POST['login'], $user);
+$found = $u->read($_POST['login'], $user);
 
-if ($user !== null) {
+if ($found && $user->password !== null) {
 	if (password_verify($_POST['password'], $user->password)) {
 		// Reset attempts on success
 		if (file_exists($rate_file)) {

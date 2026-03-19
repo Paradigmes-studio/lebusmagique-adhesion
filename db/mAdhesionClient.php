@@ -37,18 +37,19 @@ class mAdhesionClient {
 		$conditions = [];
 		$params = [];
 		$orderby = "";
+		$orderby_params = [];
 
 		if (!empty($filters['last_name'])) {
 			$conditions[] = 'soundex(last_name)=soundex(:last_name)';
 			$params[':last_name'] = $filters['last_name'];
 			$orderby = " ORDER BY strcmp(last_name, :last_name_order) DESC, last_name";
-			$params[':last_name_order'] = $filters['last_name'];
+			$orderby_params = [':last_name_order' => $filters['last_name']];
 		}
 		if (!empty($filters['first_name'])) {
 			$conditions[] = 'soundex(first_name)=soundex(:first_name)';
 			$params[':first_name'] = $filters['first_name'];
 			$orderby = " ORDER BY strcmp(first_name, :first_name_order) DESC, first_name";
-			$params[':first_name_order'] = $filters['first_name'];
+			$orderby_params = [':first_name_order' => $filters['first_name']];
 		}
 		if (!empty($filters['email'])) {
 			$conditions[] = 'email = :email';
@@ -72,6 +73,7 @@ class mAdhesionClient {
 			$sql .= " WHERE " . implode(' AND ', $conditions);
 		}
 		$sql .= $orderby;
+		$params = array_merge($params, $orderby_params);
 
 		$query = $this->conn->prepare($sql);
 		$query->execute($params);

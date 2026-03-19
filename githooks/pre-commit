@@ -1,0 +1,18 @@
+#!/bin/bash
+
+echo "Running tests before commit..."
+
+if ! docker compose ps --status running app --quiet 2>/dev/null | grep -q .; then
+    echo "ERROR: Docker containers are not running. Start them with 'make up' first."
+    exit 1
+fi
+
+docker compose exec -T app bash -c "cd /var/www/html && composer install --quiet && vendor/bin/phpunit"
+
+if [ $? -ne 0 ]; then
+    echo ""
+    echo "COMMIT ABORTED: Tests failed. Fix the errors before committing."
+    exit 1
+fi
+
+echo "All tests passed."

@@ -14,6 +14,10 @@ class CheckLoginTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
+        if ($GLOBALS['conn'] === null) {
+            self::markTestSkipped('No database connection available');
+        }
+
         self::$conf = $GLOBALS['conf'];
         self::$conn = $GLOBALS['conn'];
 

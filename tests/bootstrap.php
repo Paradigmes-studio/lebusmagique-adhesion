@@ -5,7 +5,11 @@ set_include_path($_SERVER['DOCUMENT_ROOT']);
 
 require_once 'db/conn.php';
 
-require_once 'config.dist.php';
+if (file_exists($_SERVER['DOCUMENT_ROOT'] . '/config.php')) {
+    require_once 'config.php';
+} else {
+    require_once 'config.dist.php';
+}
 
 // PHPUnit loads bootstrap inside a method scope, so variables defined in
 // conn.php and config.dist.php are local, not global. Functions like
@@ -13,4 +17,9 @@ require_once 'config.dist.php';
 // to $GLOBALS explicitly.
 $GLOBALS['current_version'] = $current_version;
 $GLOBALS['conf'] = $conf;
-$GLOBALS['conn'] = get_conn($conf);
+
+try {
+    $GLOBALS['conn'] = get_conn($conf);
+} catch (PDOException $e) {
+    $GLOBALS['conn'] = null;
+}

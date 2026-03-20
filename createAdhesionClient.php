@@ -43,10 +43,12 @@ if (!$new) {
 <div class="page-title" style="text-align:center;border:none;">T'embarques avec nous?</div>
 <?php else: ?>
 <div class="page-title">Adhésion #<?php echo $adhesion_client->id; ?></div>
-<?php printf('<input type="hidden" name="id" value="%d">', $adhesion_client->id); ?>
 <?php endif; ?>
 
 <form action="mCreateAdhesionClient.php" onsubmit="submit.disabled = true" method="POST">
+<?php if (!$new): ?>
+<?php printf('<input type="hidden" name="id" value="%d">', $adhesion_client->id); ?>
+<?php endif; ?>
 
 <?php
 	$a = new mAdhesionType($conn, $conf);
@@ -113,7 +115,7 @@ if (!$new) {
 <div class="form-toggle">
 	<span>Recevoir la prog et les nouvelles du bus</span>
 	<?php
-		$checked = ((!$new && $adhesion_client->newsletter == 1) || ($new && ($_GET['subscribe'] ?? '') == "on") || ($new && !isset($_GET['subscribe']))) ? "checked" : "";
+		$checked = ((!$new && $adhesion_client->newsletter == 1) || ($new && ($_GET['subscribe'] ?? '') == "on")) ? "checked" : "";
 	?>
 	<label class="switch"><input name="subscribe" type="checkbox" <?php echo $checked; ?>><span class="slider round"></span></label>
 </div>

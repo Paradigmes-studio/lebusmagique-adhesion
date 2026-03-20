@@ -51,13 +51,13 @@ if ($_POST['adhesion_type'] == "") {
 } else
 	$values .= "adhesionType=" . $_POST['adhesion_type'] . "&";
 
-$values .= "subscribe=" . $_POST['subscribe'] . "&";
+$values .= "subscribe=" . ($_POST['subscribe'] ?? '') . "&";
 
 
 //Test du code de validation si nouvelle adhésion
 //
 if ($new) {	
-	$codeValid = $_POST['code_valid'];
+	$codeValid = $_POST['code_valid'] ?? '';
 	if ($codeValid == "") {
 		$err .= "codeValidErr=Demande un code au bar&";
 	} else {
@@ -108,7 +108,7 @@ if ($new) {
 	$edited_adhesion_client->date_debut = date('Y-m-d H:i:s', strtotime($_POST['date_debut']));
 	$edited_adhesion_client->date_fin = date('Y-m-d H:i:s', strtotime($_POST['date_fin']));
 }
-if ($_POST['subscribe'] == "on")
+if (($_POST['subscribe'] ?? '') == "on")
 	$edited_adhesion_client->newsletter = true;
 else
 	$edited_adhesion_client->newsletter = false;
@@ -129,7 +129,7 @@ $result = true;
 /********************************/
 /*Edition de la carte d'adhérent*/
 /********************************/
-if (($new) || (($_POST['carte'] == "on"))) {
+if ($new || ($_POST['carte'] ?? '') == "on") {
 	
 	$carteFile = "res/Carte". $edited_adhesion_client->id .".jpg";
 	if (file_exists($carteFile)) {
@@ -140,7 +140,6 @@ if (($new) || (($_POST['carte'] == "on"))) {
 	$i = new ImageCarteAdhesion();
 	$result = $i->generate($edited_adhesion_client);
 	if (!$result) {
-		echo "Erreur à la génération de la carte adhérent</br>";
 		$erreur = "Erreur à la génération de la carte adhérent";
 		//die("Erreur à la génération de la carte adhérent");
 	}
@@ -149,14 +148,12 @@ if (($new) || (($_POST['carte'] == "on"))) {
 /*******************************/
 /*Envoi de l'email de bienvenue*/
 /*******************************/
-if (($result) && (($new) || (($_POST['sendmail'] == "on")))) {
-	echo "Envoi email</br>";
+if ($result && ($new || ($_POST['sendmail'] ?? '') == "on")) {
 	if ($new)
 		$model = $adhesion_type->email_welcome; 
 	else
 		$model = $_POST['email_resend'];
 	if ($conf["send_email"]) {
-		echo "envoi mail";
 		$e = new EmailHandler($conn, $conf); 
 		$e->send_adhesion($edited_adhesion_client, $model, $error);
 		if ($error!="") {
@@ -172,14 +169,15 @@ if (($result) && (($new) || (($_POST['sendmail'] == "on")))) {
 /**************************************************/
 /*Si newsletter checked, ajout à mailchimp via API*/
 /**************************************************/
-echo "NewsLetter</br>";
-if (($_POST['subscribe'] == "on")) {
-	$taglist = new mMailchimpTag($conn, $conf); 
-	$mc = new MailChimpHandler($conn, $conf);
-	$mc->manageEmailList($edited_adhesion_client, $taglist->list_mailchimp_tag_name() ,'PUT');
-} elseif (($_POST['subscribe'] != "on") && (!$new)) {
-	$mc = new MailChimpHandler($conn, $conf);
-	$mc->manageEmailList($edited_adhesion_client, '', 'DELETE');
+if (!empty($conf['apiKey'])) {
+	if (($_POST['subscribe'] ?? '') == "on") {
+		$taglist = new mMailchimpTag($conn, $conf);
+		$mc = new MailChimpHandler($conn, $conf);
+		$mc->manageEmailList($edited_adhesion_client, $taglist->list_mailchimp_tag_name() ,'PUT');
+	} elseif (($_POST['subscribe'] ?? '') != "on" && !$new) {
+		$mc = new MailChimpHandler($conn, $conf);
+		$mc->manageEmailList($edited_adhesion_client, '', 'DELETE');
+	}
 }
 
 /************************/
@@ -194,7 +192,7 @@ if ($result) {
 		$text = "Ton numéro d'adhérent est : ". $edited_adhesion_client->id ."</br>Ta carte d'adhésion a été envoyé sur " . $edited_adhesion_client->email . ".</br>Si tu ne la vois pas, vérifie tes spams.</br>Et maintenant tu n'as plus qu'à profiter!";
 	} else {
 		$title = "Ca à marché!";
-		$text = "L'adhésion n°". $edited_adhesion_client->id . " a bien été modifiée</br>";
+		$text = "L'adhésion n°". $edited_adhesion_client->id . " a bien été modifiée";
 		$nextPage = 'createAdhesionClient.php?id=' . $edited_adhesion_client->id;
 		$buttonName = "Retour";
 	}
@@ -202,7 +200,6 @@ if ($result) {
 	$title = "Erreur :(";
 	$text = $erreur . " - Vois avec un serveur comment faire... Désolé...";
 }
-echo "Affichage next page</br>";
 //header(sprintf('Location: message.php?title=%s&text=%s&nextPage=%s&buttonName=%s&image=%s',$title,$text,$nextPage,$buttonName,'res%2FCarte'. $edited_adhesion_client->id .'.jpg'));
 header(sprintf('Location: message.php?title=%s&text=%s&nextPage=%s&buttonName=%s&adhesionId=%s',$title,$text,$nextPage,$buttonName, $edited_adhesion_client->id));
 

@@ -4,3 +4,5 @@ diag.php
 vendor/
 composer.lock
 .phpunit.result.cache
+res/Carte*.jpg
+.DS_Store

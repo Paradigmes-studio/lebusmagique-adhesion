@@ -6,7 +6,9 @@ require_once("config.php");
 require_once("lib/debug.php");
 
 $domain=$conf['db_name_mysql'].':';
-session_start(); 
+ini_set('session.gc_maxlifetime', 28800);
+session_set_cookie_params(28800);
+session_start();
 $msg="";
 if (!check_conf($conf, $msg))  {
   die(sprintf("Conf incorrect: %s", $msg));

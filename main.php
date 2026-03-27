@@ -1,6 +1,34 @@
 <?php
 require_once("init.php");
 require_once("get_login_info.php");
+
+require_once("db/mAlertRule.php");
+require_once("db/mAlertSent.php");
+require_once("db/mAdhesionClient.php");
+require_once("lib/EmailHandler.php");
+
+$query_alerts = $conn->query("SELECT value FROM adh_param WHERE id = 'alerts_enabled'");
+$row_alerts = $query_alerts->fetch();
+$alerts_enabled = $row_alerts && $row_alerts['value'] === '1';
+
+if ($alerts_enabled && $conf["send_email"] && !isset($_SESSION['alerts_checked'])) {
+	$ruleManager = new mAlertRule($conn, $conf);
+	$sentManager = new mAlertSent($conn, $conf);
+	$emailHandler = new EmailHandler($conn, $conf);
+	$activeRules = $ruleManager->list_active();
+
+	foreach ($activeRules as $rule) {
+		$clients = $sentManager->get_eligible_clients($rule);
+		foreach ($clients as $client) {
+			$error = "";
+			$emailHandler->send_alert($client, $rule->email_template, $error);
+			if ($error === "") {
+				$sentManager->mark_sent($rule->id, $client->id);
+			}
+		}
+	}
+	$_SESSION['alerts_checked'] = true;
+}
 ?>
 <html>
 <head>
@@ -39,6 +67,18 @@ require_once("get_login_info.php");
 		<a href="tagMailchimp.php" class="dashboard-card">
 			<span class="dashboard-card-icon">&#9993;</span>
 			<span class="dashboard-card-label">Mailchimp</span>
+		</a>
+		<a href="statistics.php" class="dashboard-card">
+			<span class="dashboard-card-icon">&#128202;</span>
+			<span class="dashboard-card-label">Statistiques</span>
+		</a>
+		<a href="alertRules.php" class="dashboard-card">
+			<span class="dashboard-card-icon">&#128276;</span>
+			<span class="dashboard-card-label">Alertes</span>
+		</a>
+		<a href="emailTemplates.php" class="dashboard-card">
+			<span class="dashboard-card-icon">&#9993;</span>
+			<span class="dashboard-card-label">Templates</span>
 		</a>
 	</div>
 </div>

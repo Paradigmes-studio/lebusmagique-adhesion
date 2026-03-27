@@ -1,4 +1,5 @@
 <?php
+ob_start();
 require_once("db/mAdhesionClient.php");
 require_once("db/mAdhesionType.php");
 require_once("db/mMailchimpTag.php");
@@ -71,6 +72,23 @@ if ($new) {
 	$values .= "id=" . $_POST['id'] . "&";
 }
 
+if ($new) {
+	$referral = $_POST['referral_source'] ?? '';
+	if ($referral == "") {
+		$err .= "referralErr=Dis-nous comment tu nous as connus !&";
+	} else {
+		$values .= "referralSource=" . $referral . "&";
+		if ($referral == "autre") {
+			$referral_other = $_POST['referral_other'] ?? '';
+			if ($referral_other == "") {
+				$err .= "referralErr=Précise comment tu nous as connus !&";
+			} else {
+				$values .= "referralOther=" . $referral_other . "&";
+			}
+		}
+	}
+}
+
 //!!!!!!! tester erreurs sur date if not new
 //
 //
@@ -112,6 +130,19 @@ if (($_POST['subscribe'] ?? '') == "on")
 	$edited_adhesion_client->newsletter = true;
 else
 	$edited_adhesion_client->newsletter = false;
+
+if ($new) {
+	$referral = $_POST['referral_source'];
+	if ($referral === 'autre') {
+		$edited_adhesion_client->referral_source = 'autre:' . $_POST['referral_other'];
+	} else {
+		$edited_adhesion_client->referral_source = $referral;
+	}
+} else {
+	$existing = new AdhesionClient();
+	$t->read($_POST['id'], $existing);
+	$edited_adhesion_client->referral_source = $existing->referral_source;
+}
 
 if (!$new) {
 	$edited_adhesion_client->id = $_POST['id'];
@@ -189,7 +220,7 @@ $buttonName = "Nouvelle adhésion";
 if ($result) {
 	if ($new) {
 		$title = "Bienvenue!";
-		$text = "Ton numéro d'adhérent est : ". $edited_adhesion_client->id ."</br>Ta carte d'adhésion a été envoyé sur " . $edited_adhesion_client->email . ".</br>Si tu ne la vois pas, vérifie tes spams.</br>Et maintenant tu n'as plus qu'à profiter!";
+		$text = "Ton numéro d'adhérent est : ". $edited_adhesion_client->id ."<br>Ta carte d'adhésion a été envoyée sur " . $edited_adhesion_client->email . ".<br>Si tu ne la vois pas, vérifie tes spams.<br>Et maintenant tu n'as plus qu'à profiter !";
 	} else {
 		$title = "Ca à marché!";
 		$text = "L'adhésion n°". $edited_adhesion_client->id . " a bien été modifiée";

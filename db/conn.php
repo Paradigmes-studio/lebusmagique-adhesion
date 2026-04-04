@@ -1,6 +1,6 @@
 <?php
 
-$current_version = 2;
+$current_version = 7;
 $in_memory = False;
 
 function get_in_memory($conf) {
@@ -20,6 +20,9 @@ function set_version($conn, $version) {
 } 
 
 function raz_db($conn) {
+	$query = $conn->query("DROP TABLE IF EXISTS adh_email_template");
+	$query = $conn->query("DROP TABLE IF EXISTS adh_alert_sent");
+	$query = $conn->query("DROP TABLE IF EXISTS adh_alert_rule");
 	$query = $conn->query("DROP TABLE IF EXISTS adh_adhesion_client"); 
 	$query = $conn->query("DROP TABLE IF EXISTS adh_adhesion_type_description");
 	$query = $conn->query("DROP TABLE IF EXISTS adh_adhesion_type");
@@ -85,21 +88,177 @@ function init_db_from_scratch($conn, $conf) {
 	$query = $conn->query(sprintf("CREATE TABLE adh_adhesion_type_description(adhesion_type INTEGER, lang VARCHAR(2), description TEXT, PRIMARY KEY(adhesion_type, lang), FOREIGN KEY fk_adh_adhesion_type_description_adh_adhesion_type(adhesion_type) REFERENCES adh_adhesion_type(id) ON DELETE CASCADE ON UPDATE CASCADE, FOREIGN KEY fk_adh_adhesion_type_description_lang(lang) REFERENCES adh_lang(id)) %s;", get_in_memory($conf)));
 
 	// table adh_adhesion_client
-	$conn->query(sprintf("CREATE TABLE adh_adhesion_client(id INTEGER AUTO_INCREMENT, last_name VARCHAR(200), first_name VARCHAR(200), email VARCHAR(200), adhesion_type VARCHAR(200), date_debut DATETIME, date_fin DATETIME, newsletter BINARY, PRIMARY KEY(id)) %s;", get_in_memory($conf)));
+	$conn->query(sprintf("CREATE TABLE adh_adhesion_client(id INTEGER AUTO_INCREMENT, last_name VARCHAR(200), first_name VARCHAR(200), email VARCHAR(200), adhesion_type VARCHAR(200), date_debut DATETIME, date_fin DATETIME, newsletter BINARY, referral_source VARCHAR(200), PRIMARY KEY(id)) %s;", get_in_memory($conf)));
 
+
+	$conn->query(sprintf("CREATE TABLE adh_mailchimp_tag(id INTEGER AUTO_INCREMENT, name VARCHAR(200), active BOOLEAN, PRIMARY KEY(id)) %s;", get_in_memory($conf)));
 
 	$conn->query(sprintf("CREATE TABLE adh_debug(id INTEGER AUTO_INCREMENT, in_progress BOOLEAN, PRIMARY KEY (id)) %s;", get_in_memory($conf))); 
 	$conn->query(sprintf("CREATE TABLE adh_debug_detail(id INTEGER AUTO_INCREMENT, debug INTEGER, request VARCHAR(100), get_ TEXT, post_ TEXT, PRIMARY KEY (id), FOREIGN KEY fk_debug_detail_debug(debug) REFERENCES adh_debug(id) ON DELETE CASCADE ON UPDATE CASCADE) %s;", get_in_memory($conf)));
+
+	$conn->query(sprintf("CREATE TABLE adh_alert_rule(
+		id INTEGER AUTO_INCREMENT,
+		name VARCHAR(200) NOT NULL,
+		trigger_type ENUM('before', 'on', 'after') NOT NULL,
+		trigger_days INTEGER NOT NULL DEFAULT 0,
+		email_template VARCHAR(200) NOT NULL,
+		active TINYINT(1) NOT NULL DEFAULT 1,
+		PRIMARY KEY(id)
+	) %s", get_in_memory($conf)));
+
+	$conn->query(sprintf("CREATE TABLE adh_alert_sent(
+		id INTEGER AUTO_INCREMENT,
+		alert_rule_id INTEGER NOT NULL,
+		adhesion_client_id INTEGER NOT NULL,
+		sent_at DATETIME NOT NULL,
+		PRIMARY KEY(id),
+		UNIQUE KEY uq_alert_sent (alert_rule_id, adhesion_client_id),
+		FOREIGN KEY fk_alert_sent_rule(alert_rule_id) REFERENCES adh_alert_rule(id) ON DELETE CASCADE,
+		FOREIGN KEY fk_alert_sent_client(adhesion_client_id) REFERENCES adh_adhesion_client(id) ON DELETE CASCADE
+	) %s", get_in_memory($conf)));
+
+	$conn->query(sprintf("CREATE TABLE adh_email_template(
+		id INTEGER AUTO_INCREMENT,
+		name VARCHAR(200) NOT NULL,
+		subject VARCHAR(200) NOT NULL,
+		body TEXT NOT NULL,
+		PRIMARY KEY(id)
+	) %s", get_in_memory($conf)));
 
 	global $current_version;
 	return $current_version;
 }
 
 function migrate_1_2($conn, $conf) {
-	
+
 	$conn->query(sprintf("CREATE TABLE adh_mailchimp_tag(id INTEGER AUTO_INCREMENT, name VARCHAR(200), active BOOLEAN, PRIMARY KEY(id)) %s;", get_in_memory($conf)));
 
 	return 2;
+}
+
+function migrate_2_3($conn, $conf) {
+	$conn->query("ALTER TABLE adh_adhesion_client ADD COLUMN referral_source VARCHAR(200) NULL");
+	return 3;
+}
+
+function migrate_3_4($conn, $conf) {
+	$conn->query(sprintf("CREATE TABLE adh_alert_rule(
+		id INTEGER AUTO_INCREMENT,
+		name VARCHAR(200) NOT NULL,
+		trigger_type ENUM('before', 'on', 'after') NOT NULL,
+		trigger_days INTEGER NOT NULL DEFAULT 0,
+		email_template VARCHAR(200) NOT NULL,
+		active TINYINT(1) NOT NULL DEFAULT 1,
+		PRIMARY KEY(id)
+	) %s", get_in_memory($conf)));
+
+	$conn->query(sprintf("CREATE TABLE adh_alert_sent(
+		id INTEGER AUTO_INCREMENT,
+		alert_rule_id INTEGER NOT NULL,
+		adhesion_client_id INTEGER NOT NULL,
+		sent_at DATETIME NOT NULL,
+		PRIMARY KEY(id),
+		UNIQUE KEY uq_alert_sent (alert_rule_id, adhesion_client_id),
+		FOREIGN KEY fk_alert_sent_rule(alert_rule_id) REFERENCES adh_alert_rule(id) ON DELETE CASCADE,
+		FOREIGN KEY fk_alert_sent_client(adhesion_client_id) REFERENCES adh_adhesion_client(id) ON DELETE CASCADE
+	) %s", get_in_memory($conf)));
+
+	return 4;
+}
+
+function migrate_4_5($conn, $conf) {
+	$conn->query(sprintf("CREATE TABLE adh_email_template(
+		id INTEGER AUTO_INCREMENT,
+		name VARCHAR(200) NOT NULL,
+		subject VARCHAR(200) NOT NULL,
+		body TEXT NOT NULL,
+		PRIMARY KEY(id)
+	) %s", get_in_memory($conf)));
+
+	// Import existing Adhesion.html template
+	$file = 'res/Adhesion.html';
+	if (file_exists($file)) {
+		$body = file_get_contents($file);
+		$query = $conn->prepare("INSERT INTO adh_email_template(name, subject, body) VALUES (:name, :subject, :body)");
+		$query->bindValue(':name', 'Adhesion', PDO::PARAM_STR);
+		$query->bindValue(':subject', 'Bienvenue à bord Moussaillon!', PDO::PARAM_STR);
+		$query->bindValue(':body', $body, PDO::PARAM_STR);
+		$query->execute();
+		$template_id = $conn->lastInsertId();
+
+		// Convert all email_welcome references in adh_adhesion_type to template ID
+		$conn->query(sprintf("UPDATE adh_adhesion_type SET email_welcome = '%d' WHERE email_welcome NOT REGEXP '^[0-9]+$'", $template_id));
+
+		// Convert all email_template references in adh_alert_rule to template ID
+		$conn->query(sprintf("UPDATE adh_alert_rule SET email_template = '%d' WHERE email_template NOT REGEXP '^[0-9]+$'", $template_id));
+	}
+
+	return 5;
+}
+
+function migrate_5_6($conn, $conf) {
+	// Template: Expiration proche
+	$body_soon = file_get_contents('res/ExpirationProche.html');
+	if ($body_soon !== false) {
+		$query = $conn->prepare("INSERT INTO adh_email_template(name, subject, body) VALUES (:name, :subject, :body)");
+		$query->bindValue(':name', 'Expiration proche', PDO::PARAM_STR);
+		$query->bindValue(':subject', 'Ton adhésion au Bus Magique arrive bientôt à son terme !', PDO::PARAM_STR);
+		$query->bindValue(':body', $body_soon, PDO::PARAM_STR);
+		$query->execute();
+	}
+
+	// Template: Adhésion expirée
+	$body_expired = file_get_contents('res/AdhesionExpiree.html');
+	if ($body_expired !== false) {
+		$query = $conn->prepare("INSERT INTO adh_email_template(name, subject, body) VALUES (:name, :subject, :body)");
+		$query->bindValue(':name', 'Adhésion expirée', PDO::PARAM_STR);
+		$query->bindValue(':subject', 'Ton adhésion au Bus Magique a expiré !', PDO::PARAM_STR);
+		$query->bindValue(':body', $body_expired, PDO::PARAM_STR);
+		$query->execute();
+	}
+
+	return 6;
+}
+
+function migrate_6_7($conn, $conf) {
+	// Feature toggle: alerts disabled by default
+	$query = $conn->prepare("REPLACE INTO adh_param(id, value) VALUES ('alerts_enabled', '0')");
+	$query->execute();
+
+	// Default alert rules (inactive until feature is enabled)
+	// Find template IDs
+	$query = $conn->query("SELECT id, name FROM adh_email_template WHERE name IN ('Expiration proche', 'Adhésion expirée')");
+	$tpl_ids = [];
+	while ($row = $query->fetch()) {
+		$tpl_ids[$row['name']] = $row['id'];
+	}
+
+	if (isset($tpl_ids['Expiration proche'])) {
+		$query = $conn->prepare("INSERT INTO adh_alert_rule(name, trigger_type, trigger_days, email_template, active) VALUES (:name, :type, :days, :tpl, 1)");
+		$query->bindValue(':name', 'Relance 30 jours avant', PDO::PARAM_STR);
+		$query->bindValue(':type', 'before', PDO::PARAM_STR);
+		$query->bindValue(':days', 30, PDO::PARAM_INT);
+		$query->bindValue(':tpl', $tpl_ids['Expiration proche'], PDO::PARAM_STR);
+		$query->execute();
+
+		$query = $conn->prepare("INSERT INTO adh_alert_rule(name, trigger_type, trigger_days, email_template, active) VALUES (:name, :type, :days, :tpl, 1)");
+		$query->bindValue(':name', 'Alerte jour d\'expiration', PDO::PARAM_STR);
+		$query->bindValue(':type', 'on', PDO::PARAM_STR);
+		$query->bindValue(':days', 0, PDO::PARAM_INT);
+		$query->bindValue(':tpl', $tpl_ids['Expiration proche'], PDO::PARAM_STR);
+		$query->execute();
+	}
+
+	if (isset($tpl_ids['Adhésion expirée'])) {
+		$query = $conn->prepare("INSERT INTO adh_alert_rule(name, trigger_type, trigger_days, email_template, active) VALUES (:name, :type, :days, :tpl, 1)");
+		$query->bindValue(':name', 'Relance 7 jours après expiration', PDO::PARAM_STR);
+		$query->bindValue(':type', 'after', PDO::PARAM_STR);
+		$query->bindValue(':days', 7, PDO::PARAM_INT);
+		$query->bindValue(':tpl', $tpl_ids['Adhésion expirée'], PDO::PARAM_STR);
+		$query->execute();
+	}
+
+	return 7;
 }
 
 function get_version($conn) {
@@ -136,7 +295,12 @@ function check_update($conn, $conf) {
 		if ($db_version == 0) {
 			$db_version = init_db_from_scratch($conn, $conf);
 		}
-		if ($db_version == 1) { $db_version=migrate_1_2($conn, $conf); } 
+		if ($db_version == 1) { $db_version=migrate_1_2($conn, $conf); }
+		if ($db_version == 2) { $db_version=migrate_2_3($conn, $conf); }
+		if ($db_version == 3) { $db_version=migrate_3_4($conn, $conf); }
+		if ($db_version == 4) { $db_version=migrate_4_5($conn, $conf); }
+		if ($db_version == 5) { $db_version=migrate_5_6($conn, $conf); }
+		if ($db_version == 6) { $db_version=migrate_6_7($conn, $conf); }
 	}
 	set_version($conn, $db_version);
 }

@@ -62,7 +62,7 @@ jobs:
       - name: "Deploy to remote server"
         run: |
           source .github/.env.ci
-          rsync -avzP -e 'ssh' --exclude='.github' --exclude='.git' --exclude='config.php' --exclude='config.dist.php' --exclude='vendor' --exclude='tests' --exclude='phpunit.xml' --exclude='composer.json' --exclude='githooks' . ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:applications/$APP_SYS_USR/public_html/adhesion
+          rsync -avzP --delete -e 'ssh' --exclude='.github' --exclude='.git' --exclude='config.php' --exclude='config.dist.php' --exclude='vendor' --exclude='tests' --exclude='phpunit.xml' --exclude='composer.json' --exclude='composer.lock' --exclude='githooks' --exclude='docker-compose.yml' --exclude='Makefile' --exclude='docker' --exclude='.phpunit.result.cache' --exclude='fixtures.php' . ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_HOST }}:applications/$APP_SYS_USR/public_html/adhesion
 
   smoke-test:
     name: "Post-deploy smoke tests"

@@ -46,21 +46,101 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Remove files that should not be deployed
-        run: rm -f config.php config.dist.php composer.json phpunit.xml
-
-      - name: Remove dev directories
-        run: rm -rf tests vendor githooks
-
-      - name: Upload files to FTP
-        uses: matteodf/lftp-upload@v1.1.0
         with:
-            host: ${{ secrets.FTP_HOST_PROD }}
-            username: ${{ secrets.FTP_USERNAME_PROD }}
-            password: ${{ secrets.FTP_PASSWORD_PROD }}
-            localDir: .
-            remoteDir: www/adhesion
+          fetch-depth: 2
+
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Get changed files
+        id: changes
+        run: |
+          EXCLUDED="config.php|config.dist.php|composer.json|composer.lock|phpunit.xml|\.github/.*|tests/.*|vendor/.*|githooks/.*|\.gitignore|\.phpunit\.result\.cache|docker-compose\.yml|Makefile|docker/.*|fixtures\.php"
+          ADDED=$(git diff --name-only --diff-filter=ACMR HEAD~1 HEAD | grep -vE "^($EXCLUDED)$" || true)
+          DELETED=$(git diff --name-only --diff-filter=D HEAD~1 HEAD | grep -vE "^($EXCLUDED)$" || true)
+          echo "added<<EOF" >> $GITHUB_OUTPUT
+          echo "$ADDED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "deleted<<EOF" >> $GITHUB_OUTPUT
+          echo "$DELETED" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          if [ -z "$ADDED" ] && [ -z "$DELETED" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload changed files to FTP
+        if: steps.changes.outputs.skip == 'false'
+        run: |
+          ADDED="${{ steps.changes.outputs.added }}"
+          DELETED="${{ steps.changes.outputs.deleted }}"
+
+          CMDS=""
+          if [ -n "$DELETED" ]; then
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              CMDS="$CMDS rm -f www/adhesion/$file;"
+            done <<< "$DELETED"
+          fi
+
+          if [ -n "$ADDED" ]; then
+            # Collect unique directories to create
+            DIRS=""
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              dir=$(dirname "$file")
+              if [ "$dir" != "." ]; then
+                DIRS="$DIRS$dir"$'\n'
+              fi
+            done <<< "$ADDED"
+            DIRS=$(echo "$DIRS" | sort -u)
+            while IFS= read -r dir; do
+              [ -z "$dir" ] && continue
+              CMDS="$CMDS mkdir -p www/adhesion/$dir;"
+            done <<< "$DIRS"
+
+            while IFS= read -r file; do
+              [ -z "$file" ] && continue
+              CMDS="$CMDS put $file -o www/adhesion/$file;"
+            done <<< "$ADDED"
+          fi
+
+          if [ -n "$CMDS" ]; then
+            lftp -u "${{ secrets.FTP_USERNAME_PROD }},${{ secrets.FTP_PASSWORD_PROD }}" "${{ secrets.FTP_HOST_PROD }}" -e "$CMDS bye"
+          fi
+
+  smoke-test:
+    name: "Post-deploy smoke tests"
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check login page is accessible
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/login.php" --max-time 10)
+          echo "Login page returned HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
+            echo "SMOKE TEST FAILED: login page is not accessible"
+            exit 1
+          fi
+
+      - name: Check main page redirects (auth required)
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/main.php" --max-time 10)
+          echo "Main page returned HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" -eq 500 ]; then
+            echo "SMOKE TEST FAILED: main page returns 500"
+            exit 1
+          fi
+
+      - name: Check static resources
+        run: |
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/mobile.css" --max-time 10)
+          echo "CSS returned HTTP $HTTP_CODE"
+          if [ "$HTTP_CODE" -ne 200 ]; then
+            echo "SMOKE TEST FAILED: mobile.css is not accessible"
+            exit 1
+          fi
 
   smoke-test:
     name: "Post-deploy smoke tests"

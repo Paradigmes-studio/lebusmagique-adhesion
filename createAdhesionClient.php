@@ -1,7 +1,6 @@
 <?php
 require_once("db/mAdhesionClient.php");
 require_once("db/mAdhesionType.php");
-require_once("lib/EmailHandler.php");
 require_once("init.php");
 //require_once("get_login_info.php"); // if not, redirect
 
@@ -122,6 +121,37 @@ if (!$new) {
 
 <?php if ($new): ?>
 <div class="form-section">
+	<label class="form-label">Comment tu nous as connus ?</label>
+	<?php
+		$referral_err = isset($_GET['referralErr']);
+		if ($referral_err)
+			printf('<div class="alert alert--error">%s</div>', htmlspecialchars($_GET['referralErr']));
+		$ref_val = htmlspecialchars($_GET['referralSource'] ?? '');
+		$ref_other = htmlspecialchars($_GET['referralOther'] ?? '');
+	?>
+	<select name="referral_source" id="referral_source" <?php echo $referral_err ? 'class="FieldError"' : ''; ?>>
+		<option value="">-- Choisis une réponse --</option>
+		<option value="passant" <?php echo $ref_val === 'passant' ? 'selected' : ''; ?>>En passant devant, pardi !</option>
+		<option value="bouche_a_oreille" <?php echo $ref_val === 'bouche_a_oreille' ? 'selected' : ''; ?>>Par le bouche à oreille</option>
+		<option value="instagram" <?php echo $ref_val === 'instagram' ? 'selected' : ''; ?>>Par Instagram</option>
+		<option value="facebook" <?php echo $ref_val === 'facebook' ? 'selected' : ''; ?>>Par Facebook</option>
+		<option value="site_web" <?php echo $ref_val === 'site_web' ? 'selected' : ''; ?>>Par le site web</option>
+		<option value="autre" <?php echo $ref_val === 'autre' ? 'selected' : ''; ?>>Autre</option>
+	</select>
+	<input type="text" maxlength="200" name="referral_other" id="referral_other" value="<?php echo $ref_other; ?>" placeholder="Précise !" style="display:none; margin-top: 8px;"/>
+</div>
+<script>
+document.getElementById('referral_source').addEventListener('change', function() {
+	document.getElementById('referral_other').style.display = this.value === 'autre' ? 'block' : 'none';
+});
+if (document.getElementById('referral_source').value === 'autre') {
+	document.getElementById('referral_other').style.display = 'block';
+}
+</script>
+<?php endif; ?>
+
+<?php if ($new): ?>
+<div class="form-section">
 	<?php
 		if (isset($_GET['codeValidErr']))
 			printf('<div class="alert alert--error">%s</div>', htmlspecialchars($_GET['codeValidErr']));
@@ -146,6 +176,28 @@ if (!$new) {
 	</div>
 </div>
 
+<?php if (!empty($adhesion_client->referral_source)): ?>
+<div class="form-section">
+	<label class="form-label">Comment tu nous as connus ?</label>
+	<?php
+		$source_labels = [
+			'passant' => 'En passant devant, pardi !',
+			'bouche_a_oreille' => 'Par le bouche à oreille',
+			'instagram' => 'Par Instagram',
+			'facebook' => 'Par Facebook',
+			'site_web' => 'Par le site web',
+		];
+		$src = $adhesion_client->referral_source;
+		if (strpos($src, 'autre:') === 0) {
+			$display = 'Autre : ' . htmlspecialchars(substr($src, 6));
+		} else {
+			$display = htmlspecialchars($source_labels[$src] ?? $src);
+		}
+	?>
+	<div style="padding: 10px; background: #f5f5f5; border-radius: 8px;"><?php echo $display; ?></div>
+</div>
+<?php endif; ?>
+
 <div class="form-section">
 	<label class="form-label">Carte d'adhesion</label>
 	<?php printf('<img src="res/Carte%d.jpg?rand=%d" alt="Aucune carte trouvee" class="card-preview"/>', $adhesion_client->id, mt_rand(0, 0xffff)); ?>
@@ -163,13 +215,14 @@ if (!$new) {
 			<label class="switch"><input name="sendmail" type="checkbox"><span class="slider round"></span></label>
 		</div>
 		<?php
-			$e = new EmailHandler($conn, $conf);
-			$models = $e->get_models();
+			require_once("db/mEmailTemplate.php");
+			$tplManager = new mEmailTemplate($conn, $conf);
+			$models = $tplManager->list_names();
 		?>
 		<label class="form-label">Modèle d'email</label>
 		<select name="email_resend">
-		<?php foreach($models as $model): ?>
-			<option value="<?php echo htmlspecialchars($model); ?>"><?php echo htmlspecialchars($model); ?></option>
+		<?php foreach($models as $tpl_id => $tpl_name): ?>
+			<option value="<?php echo $tpl_id; ?>"><?php echo htmlspecialchars($tpl_name); ?></option>
 		<?php endforeach; ?>
 		</select>
 	</div>

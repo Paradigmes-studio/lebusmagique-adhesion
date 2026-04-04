@@ -1,5 +1,4 @@
 <?php
-require_once("lib/EmailHandler.php");
 require_once("db/mAdhesionType.php");
 //require_once("lib/User.php");
 require_once("init.php");
@@ -42,12 +41,13 @@ if (!$new) {
 
 	// Email model
 	print('<label class="form-label">Email de bienvenue</label>');
-	$e = new EmailHandler($conn, $conf);
+	require_once("db/mEmailTemplate.php");
+	$tplManager = new mEmailTemplate($conn, $conf);
+	$models = $tplManager->list_names();
 	print('<select name="email_welcome">');
-	$models = $e->get_models();
-	foreach($models as $model) {
-		$s = (!$adhesion_type->new && $adhesion_type->email_welcome == $model) ? 'selected' : '';
-		printf('<option value="%s" %s>%s</option>', htmlspecialchars($model), $s, htmlspecialchars($model));
+	foreach($models as $tpl_id => $tpl_name) {
+		$s = (!$adhesion_type->new && $adhesion_type->email_welcome == $tpl_id) ? 'selected' : '';
+		printf('<option value="%d" %s>%s</option>', $tpl_id, $s, htmlspecialchars($tpl_name));
 	}
 	print('</select>');
 

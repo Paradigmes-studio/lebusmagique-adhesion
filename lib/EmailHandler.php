@@ -5,17 +5,16 @@ use PHPMailer\PHPMailer\Exception;
 
 require_once('ext_lib/PHPMailer/src/Exception.php');
 require_once('ext_lib/PHPMailer/src/PHPMailer.php');
-require_once('ext_lib/PHPMailer/src/SMTP.php'); 
+require_once('ext_lib/PHPMailer/src/SMTP.php');
 
 class EmailHandler {
-	private $conf, $conn, $models_dir;
+	private $conf, $conn;
 
 	public function __construct($conn, $conf) {
 		$this->conn=$conn;
 		$this->conf=$conf;
-		$this->models_dir="res"; 
 	}
-	
+
 	private function init_email_smtp($email) {
 		$email->IsSMTP();
 		$email->Host = $this->conf['smtp_server'];
@@ -28,144 +27,105 @@ class EmailHandler {
 		}
 		$email->SetFrom($this->conf['email_from'], $this->conf['name_company']);
 		#$email->SMTPDebug = true;
-	} 
-
-/*	private function save_email($recipients, $subject, $body) {
-		// save email to the table instead.
-		$query=$this->conn->prepare("INSERT INTO email_sent(date_, recipients, subject, body) VALUES (NOW(), :recipients, :subject, :body)");
-		$query->bindValue(":recipients", $recipients, PDO::PARAM_STR);
-		$query->bindValue(":subject", $subject, PDO::PARAM_STR);
-		$query->bindValue(":body", $body, PDO::PARAM_STR);
-		$query->execute(); 
-	}*/
-
-/*	public function send_email_summary($tour, $tips, $count, $tour_type, $error_sending_email, &$error) {
-		$email_model=$tour_type->email_end_of_tour;
-		$error="";
-		$subject=sprintf('A tour was done by %s', $tour->user);
-		$recipient=$this->conf['dest_email_summary_end_of_tour'];
-		$body=sprintf("Date: %s\nGuide: %s\nTour: %s\nVisitors: %d\nTips: %0.2f\n", $tour->date->format("Y-m-d"), $tour->user, $tour_type->name, $count, $tips);
-		if ($email_model != "") {
-			$recipients = $this->get_recipients($tour->id);
-			$body.=sprintf("Emails sent: %d",  sizeof($recipients));
-			if ($error_sending_email!='') {
-				$body.=sprintf("\nErrors while sending emails: %s", $error_sending_email);
-			}
-		}
-		if (!($this->actually_send_mail())) {
-			$this->save_email($recipient, $subject, $body);
-		} else { 
-			$email=new PHPMailer(true);
-			$error="";
-			try {
-				$this->init_email_smtp($email); 
-				$addresses = explode(',', $recipient);
-				foreach ($addresses as $address) {
-					$email->AddAddress($address);
-				}
-				$email->Subject=$subject;
-				$email->isHTML(false); 
-				$email->CharSet="utf-8";
-				$email->Body=$body;
-				$email->Send();
-			} catch (phpmailerException $e) { 
-				$error=$e->getMessage();
-			} catch (Exception $e) {
-				$error=$e->getMessage();
-			} 
-		}
-	}*/
-/*
-	public function send_simple_email($recipient, $subject, $body, &$error) {
-		$error = "";
-		if (!($this->actually_send_mail())) {
-			$this->save_email($recipient, $subject, $body);
-			return "";
-		} else { 
-			$email=new PHPMailer(true);
-			$error="";
-			try {
-				$this->init_email_smtp($email); 
-				$addresses = explode(',', $recipient);
-				foreach ($addresses as $address) {
-					$email->AddAddress($address);
-				}
-				$email->Subject=$subject;
-				$email->isHTML(false); 
-				$email->CharSet="utf-8";
-				$email->Body=$body;
-				$email->Send();
-			} catch (phpmailerException $e) { 
-				$error=$e->getMessage();
-			} catch (Exception $e) {
-				$error=$e->getMessage();
-			} 
-		}
 	}
-*/
-	public function send_adhesion($adhesionClient, $model, &$error) {
 
-		// email for the client
+	private function replace_variables($text, $adhesionClient) {
+		$replacements = [
+			'{prenom}' => $adhesionClient->first_name ?? '',
+			'{nom}' => $adhesionClient->last_name ?? '',
+			'{email}' => $adhesionClient->email ?? '',
+			'{type_adhesion}' => $adhesionClient->adhesion_type ?? '',
+			'{date_debut}' => !empty($adhesionClient->date_debut) ? date('d/m/Y', strtotime($adhesionClient->date_debut)) : '',
+			'{date_fin}' => !empty($adhesionClient->date_fin) ? date('d/m/Y', strtotime($adhesionClient->date_fin)) : '',
+			'{id}' => $adhesionClient->id ?? '',
+		];
+		return str_replace(array_keys($replacements), array_values($replacements), $text);
+	}
+
+	private function load_template($template_id) {
+		if (is_numeric($template_id)) {
+			$query = $this->conn->prepare("SELECT subject, body FROM adh_email_template WHERE id = :id");
+			$query->bindValue(':id', $template_id, PDO::PARAM_INT);
+		} else {
+			$query = $this->conn->prepare("SELECT subject, body FROM adh_email_template WHERE name = :name");
+			$query->bindValue(':name', $template_id, PDO::PARAM_STR);
+		}
+		$query->execute();
+		return $query->fetch();
+	}
+
+	public function send_adhesion($adhesionClient, $template_id, &$error) {
 		$error = "";
-		$recipient = $adhesionClient->email;
-		$subject = "Bienvenue à bord Moussaillon!";
-		$body = "";
-		$conf = $this->conf;
 
-		// Validate model against whitelist of existing files
-		$allowed_models = $this->get_models();
-		if (!in_array($model, $allowed_models, true)) {
-			$error = "Invalid email model";
+		$tpl = $this->load_template($template_id);
+		if (!$tpl) {
+			$error = "Template not found";
 			return;
 		}
 
-		$file = $this->models_dir.'/'.basename($model);
-		if (substr($file, -5) == '.html') {
-			$body = file_get_contents($file);
-		}
+		$subject = $this->replace_variables($tpl['subject'], $adhesionClient);
+		$body = $this->replace_variables($tpl['body'], $adhesionClient);
 
-		$email=new PHPMailer(true);
-		$error="";
+		$email = new PHPMailer(true);
 		try {
-			//TOlaterDO later: handle attachments in case the user select an html file
-			$this->init_email_smtp($email); 
+			$this->init_email_smtp($email);
 			$email->AddReplyTo($this->conf["adhesion_reply"], $this->conf["name_company"]);
 			$email->AddAddress($adhesionClient->email);
-			$email->Subject=$subject;
-			$email->isHTML(true); 
-			$email->CharSet="utf-8";
-			//$email->AddEmbeddedImage("res/image.png", "CarteAdherent", "image.png");
+			$email->Subject = $subject;
+			$email->isHTML(true);
+			$email->CharSet = "utf-8";
 			$status = false;
-			while($status != true) {
-				$status = file_exists('res/Carte'. $adhesionClient->id .'.jpg');
+			while ($status != true) {
+				$status = file_exists('res/Carte' . $adhesionClient->id . '.jpg');
 				if ($status == true)
 					break;
 			}
-			$email->AddAttachment('res/Carte'. $adhesionClient->id .'.jpg');
-			$email->Body=$body;
+			$email->AddAttachment('res/Carte' . $adhesionClient->id . '.jpg');
+			$email->Body = $body;
 			$email->Send();
-		} catch (phpmailerException $e) { 
-			$error=$e->getMessage();
+		} catch (phpmailerException $e) {
+			$error = $e->getMessage();
 		} catch (Exception $e) {
-			$error=$e->getMessage();
-		} 
+			$error = $e->getMessage();
+		}
+	}
 
+	public function send_alert($adhesionClient, $template_id, &$error) {
+		$error = "";
+
+		$tpl = $this->load_template($template_id);
+		if (!$tpl) {
+			$error = "Template not found";
+			return;
+		}
+
+		$subject = $this->replace_variables($tpl['subject'], $adhesionClient);
+		$body = $this->replace_variables($tpl['body'], $adhesionClient);
+
+		$email = new PHPMailer(true);
+		try {
+			$this->init_email_smtp($email);
+			$email->AddReplyTo($this->conf["adhesion_reply"], $this->conf["name_company"]);
+			$email->AddAddress($adhesionClient->email);
+			$email->Subject = $subject;
+			$email->isHTML(true);
+			$email->CharSet = "utf-8";
+			$email->Body = $body;
+			$email->Send();
+		} catch (\PHPMailer\PHPMailer\Exception $e) {
+			$error = $e->getMessage();
+		} catch (Exception $e) {
+			$error = $e->getMessage();
+		}
 	}
 
 	public function get_models() {
-		$r=array();
-		$filter=$this->models_dir."/*.html";
-		$files=glob($filter);
-		foreach($files as $file) {
-			array_push($r, basename($file));
-		} 
-		$filter=$this->models_dir."/*.php";
-		$files=glob($filter);
-		foreach($files as $file) {
-			array_push($r, basename($file));
-		} 
-
-		return $r;
+		$query = $this->conn->query("SELECT id, name FROM adh_email_template ORDER BY name");
+		$models = [];
+		while ($res = $query->fetch()) {
+			$models[(int)$res['id']] = $res['name'];
+		}
+		return $models;
 	}
 }
 

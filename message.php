@@ -31,10 +31,12 @@ require_once("init.php");
 		$nextPage = 'main.php';
 	}
 
-	printf('</br><text class="title">%s</text><br/><br/><br/>', $title);
+	printf('<br><text class="title">%s</text><br><br><br>', $title);
 
-	printf('<text>%s</text>', $text);
-	printf('<div style="text-align:center !important;"><br><img src="http://lebusmagiquelille.fr/adhesion/res/Carte%d.jpg" style="width:300px !important;text-align:center !important;"/></div>', $adhesionId);
+	printf('<text>%s</text>', html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
+	if ($adhesionId > 0) {
+		printf('<div style="text-align:center !important;"><br><img src="res/Carte%d.jpg" style="width:300px !important;text-align:center !important;"/></div>', $adhesionId);
+	}
 
 	printf('<p><input type="button" onclick="location.href=\'%s\';" value="%s" /></p>', htmlspecialchars($nextPage), $buttonName); 
 

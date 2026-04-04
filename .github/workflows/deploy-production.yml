@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      since_ref:
+        description: 'Base ref to diff from (e.g. b3256ae). Leave empty to use HEAD~1.'
+        required: false
+        default: ''
 
 jobs:
   test:
@@ -47,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Install lftp
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
@@ -56,8 +62,13 @@ jobs:
         id: changes
         run: |
           EXCLUDED="config.php|config.dist.php|composer.json|composer.lock|phpunit.xml|\.github/.*|tests/.*|vendor/.*|githooks/.*|\.gitignore|\.phpunit\.result\.cache|docker-compose\.yml|Makefile|docker/.*|fixtures\.php"
-          ADDED=$(git diff --name-only --diff-filter=ACMR HEAD~1 HEAD | grep -vE "^($EXCLUDED)$" || true)
-          DELETED=$(git diff --name-only --diff-filter=D HEAD~1 HEAD | grep -vE "^($EXCLUDED)$" || true)
+          BASE="${{ github.event.inputs.since_ref }}"
+          if [ -z "$BASE" ]; then
+            BASE="HEAD~1"
+          fi
+          echo "Diffing from $BASE to HEAD"
+          ADDED=$(git diff --name-only --diff-filter=ACMR "$BASE" HEAD | grep -vE "^($EXCLUDED)$" || true)
+          DELETED=$(git diff --name-only --diff-filter=D "$BASE" HEAD | grep -vE "^($EXCLUDED)$" || true)
           echo "added<<EOF" >> $GITHUB_OUTPUT
           echo "$ADDED" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

@@ -30,6 +30,10 @@ class SearchAdhesionClientTest extends TestCase
             ['Dupont', 'Marie', 'marie@test.com', 'Standard', '2024-01-01', '2025-01-01', 0],
             ['Dupond', 'Lucas', 'lucas@test.com', 'Standard', '2024-06-01', '2025-06-01', 1],
             ['Martin', 'Camille', 'camille@test.com', 'Premium', '2023-01-01', '2024-01-01', 0],
+            ['Morton', 'Pierre', 'pierre@test.com', 'Standard', '2024-02-01', '2025-02-01', 0],
+            ['Maritain', 'Sophie', 'sophie@test.com', 'Standard', '2024-03-01', '2025-03-01', 0],
+            ['Leroy', 'Maria', 'maria@test.com', 'Standard', '2024-04-01', '2025-04-01', 0],
+            ['Bernard', 'Mario', 'mario@test.com', 'Standard', '2024-05-01', '2025-05-01', 0],
         ];
         foreach ($fixtures as $f) {
             $stmt->execute([
@@ -90,12 +94,49 @@ class SearchAdhesionClientTest extends TestCase
     public function testSearchNoFiltersReturnsAll(): void
     {
         $results = $this->manager->search([]);
-        $this->assertCount(3, $results);
+        $this->assertCount(7, $results);
     }
 
     public function testSearchNoMatch(): void
     {
         $results = $this->manager->search(['email' => 'nobody@test.com']);
         $this->assertEmpty($results);
+    }
+
+    public function testSearchMartinDoesNotReturnPhoneticMatches(): void
+    {
+        $results = $this->manager->search(['last_name' => 'Martin']);
+        $this->assertCount(1, $results);
+        $this->assertSame('Martin', $results[0]->last_name);
+    }
+
+    public function testSearchByPartialLastName(): void
+    {
+        $results = $this->manager->search(['last_name' => 'Dup']);
+        $names = array_map(fn($r) => $r->last_name, $results);
+        sort($names);
+        $this->assertSame(['Dupond', 'Dupont'], $names);
+    }
+
+    public function testSearchCaseInsensitive(): void
+    {
+        $results = $this->manager->search(['last_name' => 'martin']);
+        $this->assertCount(1, $results);
+        $this->assertSame('Martin', $results[0]->last_name);
+    }
+
+    public function testSearchMarieFirstNameDoesNotReturnPhoneticMatches(): void
+    {
+        $results = $this->manager->search(['first_name' => 'Marie']);
+        $this->assertCount(1, $results);
+        $this->assertSame('Marie', $results[0]->first_name);
+    }
+
+    public function testSearchByPartialFirstName(): void
+    {
+        $results = $this->manager->search(['first_name' => 'Mari']);
+        $names = array_map(fn($r) => $r->first_name, $results);
+        sort($names);
+        $this->assertSame(['Maria', 'Marie', 'Mario'], $names);
     }
 }

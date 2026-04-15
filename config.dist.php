@@ -23,6 +23,10 @@
 		"programmer"=>"",
 
 		"apiKey"=>"",
-		"listId"=>""
+		"listId"=>"",
+
+		"brevoApiKey"=>"",
+		"brevoListIdAdhesion"=>3,
+		"brevoListIdNewsletter"=>0
 	);
  ?>

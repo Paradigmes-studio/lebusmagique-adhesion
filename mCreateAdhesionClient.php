@@ -6,6 +6,7 @@ require_once("db/mMailchimpTag.php");
 require_once("lib/EmailHandler.php");
 require_once("lib/CreateImageText.php");
 require_once("lib/MailChimpHandler.php");
+require_once("lib/BrevoHandler.php");
 require_once("init.php");
 require_once("config.php");
 //require_once("get_login_info.php"); // if not, redirect
@@ -208,6 +209,28 @@ if (!empty($conf['apiKey'])) {
 	} elseif (($_POST['subscribe'] ?? '') != "on" && !$new) {
 		$mc = new MailChimpHandler($conn, $conf);
 		$mc->manageEmailList($edited_adhesion_client, '', 'DELETE');
+	}
+}
+
+/**********************************************************/
+/*Synchronisation Brevo : liste Adhésion + Newsletter opt */
+/**********************************************************/
+$brevo = new BrevoHandler($conn, $conf);
+if ($brevo->isConfigured()) {
+	$listIds = [];
+	$unlinkListIds = [];
+	if (!empty($conf['brevoListIdAdhesion'])) {
+		$listIds[] = (int)$conf['brevoListIdAdhesion'];
+	}
+	$subscribed = (($_POST['subscribe'] ?? '') == "on");
+	if ($subscribed && !empty($conf['brevoListIdNewsletter'])) {
+		$listIds[] = (int)$conf['brevoListIdNewsletter'];
+	} elseif (!$subscribed && !$new && !empty($conf['brevoListIdNewsletter'])) {
+		$unlinkListIds[] = (int)$conf['brevoListIdNewsletter'];
+	}
+	$res = $brevo->upsertContact($edited_adhesion_client, $listIds, $unlinkListIds);
+	if (!$res['ok']) {
+		error_log(sprintf("Brevo contact sync failed: HTTP %s - %s", $res['http'] ?? '?', $res['body'] ?? $res['msg'] ?? ''));
 	}
 }
 

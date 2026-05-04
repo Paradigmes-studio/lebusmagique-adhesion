@@ -38,7 +38,7 @@ class CreateAdhesionFormTest extends TestCase
         ]);
     }
 
-    private function renderForm(array $get = []): string
+    private function renderForm(array $get = [], array $confOverrides = []): string
     {
         $_GET = $get;
         $_SESSION = [];
@@ -52,7 +52,7 @@ class CreateAdhesionFormTest extends TestCase
         }
 
         $conn = self::$conn;
-        $conf = self::$conf;
+        $conf = array_merge(self::$conf, $confOverrides);
         $domain = self::$conf['db_name_mysql'] . ':';
 
         ob_start();
@@ -111,12 +111,25 @@ class CreateAdhesionFormTest extends TestCase
         $this->assertStringNotContainsString('name="code_valid"', $html);
     }
 
-    public function testEditFormNewsletterReflectsDbValue(): void
+    public function testEditFormNewsletterReflectsDbValueWhenBrevoDisabled(): void
     {
         $id = self::$conn->query(
             "SELECT id FROM adh_adhesion_client WHERE newsletter = 1 LIMIT 1"
         )->fetchColumn();
-        $html = $this->renderForm(['id' => $id]);
+        $html = $this->renderForm(['id' => $id], ['brevoApiKey' => '']);
+
+        $this->assertMatchesRegularExpression(
+            '/name="subscribe".*checked/',
+            $html
+        );
+    }
+
+    public function testEditFormNewsletterFallsBackToDbWhenNewsletterListUnset(): void
+    {
+        $id = self::$conn->query(
+            "SELECT id FROM adh_adhesion_client WHERE newsletter = 1 LIMIT 1"
+        )->fetchColumn();
+        $html = $this->renderForm(['id' => $id], ['brevoListIdNewsletter' => 0]);
 
         $this->assertMatchesRegularExpression(
             '/name="subscribe".*checked/',

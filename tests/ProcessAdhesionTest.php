@@ -177,34 +177,6 @@ class ProcessAdhesionTest extends TestCase
         $this->assertFalse($subscribe);
     }
 
-    // --- Tests: Mailchimp skipped when apiKey empty ---
-
-    public function testMailchimpSkippedWhenApiKeyEmpty(): void
-    {
-        $conf = self::$conf;
-        $conf['apiKey'] = '';
-
-        $mailchimpCalled = false;
-        if (!empty($conf['apiKey'])) {
-            $mailchimpCalled = true;
-        }
-
-        $this->assertFalse($mailchimpCalled);
-    }
-
-    public function testMailchimpCalledWhenApiKeySet(): void
-    {
-        $conf = self::$conf;
-        $conf['apiKey'] = 'fake-key-123';
-
-        $mailchimpCalled = false;
-        if (!empty($conf['apiKey'])) {
-            $mailchimpCalled = true;
-        }
-
-        $this->assertTrue($mailchimpCalled);
-    }
-
     // --- Test: edit success message has no </br> ---
 
     public function testEditSuccessMessageNoBrTag(): void

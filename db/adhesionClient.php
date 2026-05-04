@@ -10,6 +10,7 @@ class AdhesionClient {
 	public $date_fin;
 	public $newsletter;
 	public $referral_source;
+	public $edit_token;
 	public $new;
 	
 	public function __construct() {

@@ -126,29 +126,44 @@ jobs:
     needs: deploy
     runs-on: ubuntu-latest
     steps:
+      - name: Wait for OPCache warm-up
+        run: sleep 20
+
       - name: Check login page is accessible
         run: |
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/login.php" --max-time 10)
-          echo "Login page returned HTTP $HTTP_CODE"
-          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 400 ]; then
-            echo "SMOKE TEST FAILED: login page is not accessible"
-            exit 1
-          fi
+          for i in 1 2 3; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/login.php" --max-time 30)
+            echo "Attempt $i: login page returned HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 400 ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "SMOKE TEST FAILED: login page not accessible after 3 attempts"
+          exit 1
 
       - name: Check main page redirects (auth required)
         run: |
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/main.php" --max-time 10)
-          echo "Main page returned HTTP $HTTP_CODE"
-          if [ "$HTTP_CODE" -eq 500 ]; then
-            echo "SMOKE TEST FAILED: main page returns 500"
-            exit 1
-          fi
+          for i in 1 2 3; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/main.php" --max-time 30)
+            echo "Attempt $i: main page returned HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" -ne 500 ] && [ "$HTTP_CODE" -ne 000 ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "SMOKE TEST FAILED: main page returns 500 or unreachable after 3 attempts"
+          exit 1
 
       - name: Check static resources
         run: |
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/mobile.css" --max-time 10)
-          echo "CSS returned HTTP $HTTP_CODE"
-          if [ "$HTTP_CODE" -ne 200 ]; then
-            echo "SMOKE TEST FAILED: mobile.css is not accessible"
-            exit 1
-          fi
+          for i in 1 2 3; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://lebusmagiquelille.fr/adhesion/mobile.css" --max-time 30)
+            echo "Attempt $i: CSS returned HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" -eq 200 ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "SMOKE TEST FAILED: mobile.css not accessible after 3 attempts"
+          exit 1

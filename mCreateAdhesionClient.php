@@ -2,11 +2,10 @@
 ob_start();
 require_once("db/mAdhesionClient.php");
 require_once("db/mAdhesionType.php");
-require_once("db/mMailchimpTag.php");
 require_once("lib/EmailHandler.php");
 require_once("lib/CreateImageText.php");
-require_once("lib/MailChimpHandler.php");
 require_once("lib/BrevoHandler.php");
+require_once("lib/AdhesionEdit.php");
 require_once("init.php");
 require_once("config.php");
 //require_once("get_login_info.php"); // if not, redirect
@@ -132,6 +131,7 @@ if (($_POST['subscribe'] ?? '') == "on")
 else
 	$edited_adhesion_client->newsletter = false;
 
+$old_date_fin = null;
 if ($new) {
 	$referral = $_POST['referral_source'];
 	if ($referral === 'autre') {
@@ -143,6 +143,7 @@ if ($new) {
 	$existing = new AdhesionClient();
 	$t->read($_POST['id'], $existing);
 	$edited_adhesion_client->referral_source = $existing->referral_source;
+	$old_date_fin = $existing->date_fin;
 }
 
 if (!$new) {
@@ -157,58 +158,48 @@ $t->write($edited_adhesion_client);
 $erreur = "";
 $result = true;
 
+$date_fin_changed = !$new && $old_date_fin !== $edited_adhesion_client->date_fin;
+$manual_carte = !$new && ($_POST['carte'] ?? '') == "on";
+$manual_sendmail = !$new && ($_POST['sendmail'] ?? '') == "on";
+$should_regen_card = $new || $manual_carte || $date_fin_changed;
+$should_send_email = $new || $manual_sendmail || $date_fin_changed;
 
 /********************************/
 /*Edition de la carte d'adhérent*/
 /********************************/
-if ($new || ($_POST['carte'] ?? '') == "on") {
-	
-	$carteFile = "res/Carte". $edited_adhesion_client->id .".jpg";
-	if (file_exists($carteFile)) {
-		unlink($carteFile);
-		while (file_exists($carteFile));
-	}
-	
-	$i = new ImageCarteAdhesion();
-	$result = $i->generate($edited_adhesion_client);
-	if (!$result) {
+if ($should_regen_card) {
+	if (!regenerate_adhesion_card($edited_adhesion_client)) {
+		$result = false;
 		$erreur = "Erreur à la génération de la carte adhérent";
-		//die("Erreur à la génération de la carte adhérent");
 	}
 }
 
 /*******************************/
 /*Envoi de l'email de bienvenue*/
 /*******************************/
-if ($result && ($new || ($_POST['sendmail'] ?? '') == "on")) {
-	if ($new)
-		$model = $adhesion_type->email_welcome; 
-	else
+if ($result && $should_send_email && $conf["send_email"]) {
+	if ($manual_sendmail) {
 		$model = $_POST['email_resend'];
-	if ($conf["send_email"]) {
-		$e = new EmailHandler($conn, $conf); 
-		$e->send_adhesion($edited_adhesion_client, $model, $error);
-		if ($error!="") {
-			$result = false;
-			echo("erreur : ". $error . " - model : " . $model);
-			$erreur = "Erreur à l'envoi de l'email de bienvenue";
-			error_log(sprintf("Error while sending booking email: %s", $error));
-//			die("Erreur d'envoi d'email");
+	} elseif ($new) {
+		$model = $adhesion_type->email_welcome;
+	} else {
+		$autoType = new AdhesionType();
+		try {
+			$a2 = new mAdhesionType($conn, $conf);
+			$a2->read_by_name($edited_adhesion_client->adhesion_type, $autoType);
+			$model = $autoType->email_welcome;
+		} catch (Exception $e) {
+			$model = null;
+			error_log(sprintf("Adhesion type lookup failed for auto renewal email: %s", $e->getMessage()));
 		}
 	}
-}
-
-/**************************************************/
-/*Si newsletter checked, ajout à mailchimp via API*/
-/**************************************************/
-if (!empty($conf['apiKey'])) {
-	if (($_POST['subscribe'] ?? '') == "on") {
-		$taglist = new mMailchimpTag($conn, $conf);
-		$mc = new MailChimpHandler($conn, $conf);
-		$mc->manageEmailList($edited_adhesion_client, $taglist->list_mailchimp_tag_name() ,'PUT');
-	} elseif (($_POST['subscribe'] ?? '') != "on" && !$new) {
-		$mc = new MailChimpHandler($conn, $conf);
-		$mc->manageEmailList($edited_adhesion_client, '', 'DELETE');
+	if (!empty($model)) {
+		$mailRes = send_adhesion_welcome_email($edited_adhesion_client, $model, $conn, $conf);
+		if (!$mailRes['ok']) {
+			$result = false;
+			$erreur = "Erreur à l'envoi de l'email de bienvenue";
+			error_log(sprintf("Error while sending booking email: %s - model : %s", $mailRes['error'] ?? '?', $model));
+		}
 	}
 }
 

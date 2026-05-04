@@ -1,9 +1,8 @@
 <?php
-require_once("db/mAdhesionClient.php"); 
-require_once("db/adhesionClient.php"); 
+require_once("db/mAdhesionClient.php");
+require_once("db/adhesionClient.php");
 require_once("init.php");
 require_once("get_login_info.php"); // if not, redirect
-require_once("lib/MailChimpHandler.php");
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 	header('Location: main.php');
@@ -25,12 +24,7 @@ if (!$a->read($id, $adhesion_client)) {
 }
 $a->delete_by_id($id);
 
-if ($adhesion_client->newsletter) {
-	$mc = new MailChimpHandler($conn, $conf);
-	$mc->manageEmailList($adhesion_client, '', 'DELETE');
-}
-
-header(sprintf('Location: listAdhesionClient.php')); 
+header(sprintf('Location: listAdhesionClient.php'));
 
 
 ?>

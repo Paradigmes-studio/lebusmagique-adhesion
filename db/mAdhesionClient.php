@@ -26,6 +26,7 @@ class mAdhesionClient {
 			$adhesion_client->date_fin = $res['date_fin'];
 			$adhesion_client->newsletter = $res['newsletter'];
 			$adhesion_client->referral_source = $res['referral_source'];
+			$adhesion_client->edit_token = $res['edit_token'] ?? null;
 			$adhesion_client->new = false;
 
 			return true;
@@ -33,7 +34,33 @@ class mAdhesionClient {
 			return false;
 		}
 	}
-	
+
+	public function find_by_token($token, $adhesion_client) {
+		if (empty($token)) {
+			return false;
+		}
+		$query = $this->conn->prepare("SELECT * FROM adh_adhesion_client WHERE edit_token = :token");
+		$query->bindValue(":token", $token, PDO::PARAM_STR);
+		$query->execute();
+
+		if ($res = $query->fetch()) {
+			$adhesion_client->id = (int)$res['id'];
+			$adhesion_client->last_name = $res['last_name'];
+			$adhesion_client->first_name = $res['first_name'];
+			$adhesion_client->email = $res['email'];
+			$adhesion_client->adhesion_type = $res['adhesion_type'];
+			$adhesion_client->date_debut = $res['date_debut'];
+			$adhesion_client->date_fin = $res['date_fin'];
+			$adhesion_client->newsletter = $res['newsletter'];
+			$adhesion_client->referral_source = $res['referral_source'];
+			$adhesion_client->edit_token = $res['edit_token'];
+			$adhesion_client->new = false;
+
+			return true;
+		}
+		return false;
+	}
+
 	public function search($filters) {
 		$conditions = [];
 		$params = [];
@@ -108,7 +135,11 @@ class mAdhesionClient {
 		} 
 		
 		if ($adhesion_client->new) {
-			$query = $this->conn->prepare("INSERT INTO adh_adhesion_client(last_name, first_name, email, adhesion_type, date_debut, date_fin, newsletter, referral_source) VALUES (:last_name, :first_name, :email, :adhesion_type, :date_debut, :date_fin, :newsletter, :referral_source)");
+			if (empty($adhesion_client->edit_token)) {
+				$adhesion_client->edit_token = bin2hex(random_bytes(16));
+			}
+			$query = $this->conn->prepare("INSERT INTO adh_adhesion_client(last_name, first_name, email, adhesion_type, date_debut, date_fin, newsletter, referral_source, edit_token) VALUES (:last_name, :first_name, :email, :adhesion_type, :date_debut, :date_fin, :newsletter, :referral_source, :edit_token)");
+			$query->bindValue(':edit_token', $adhesion_client->edit_token, PDO::PARAM_STR);
 		} else {
 			$query = $this->conn->prepare("UPDATE adh_adhesion_client SET last_name = :last_name, first_name = :first_name, email = :email, adhesion_type = :adhesion_type, date_debut = :date_debut, date_fin = :date_fin, newsletter = :newsletter, referral_source = :referral_source WHERE id = :id;");
 			$query->bindValue(':id', $adhesion_client->id, PDO::PARAM_INT);

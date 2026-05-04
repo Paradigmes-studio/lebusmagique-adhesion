@@ -22,7 +22,6 @@ class ReferralSourceTest extends TestCase
         self::$conf = $GLOBALS['conf'];
         self::$conn = $GLOBALS['conn'];
 
-        self::$conn->exec("DELETE FROM adh_alert_sent");
         self::$conn->exec("DELETE FROM adh_adhesion_client");
         self::$conn->exec("DELETE FROM adh_adhesion_type");
         $stmt = self::$conn->prepare(
@@ -110,7 +109,6 @@ class ReferralSourceTest extends TestCase
 
     public function testCountByReferralSource(): void
     {
-        self::$conn->exec("DELETE FROM adh_alert_sent");
         self::$conn->exec("DELETE FROM adh_adhesion_client");
 
         $year = 2026;
@@ -133,7 +131,6 @@ class ReferralSourceTest extends TestCase
 
     public function testCountByReferralSourceExcludesNull(): void
     {
-        self::$conn->exec("DELETE FROM adh_alert_sent");
         self::$conn->exec("DELETE FROM adh_adhesion_client");
 
         $year = 2026;
@@ -154,7 +151,6 @@ class ReferralSourceTest extends TestCase
 
     public function testCountByReferralSourceGroupsAutre(): void
     {
-        self::$conn->exec("DELETE FROM adh_alert_sent");
         self::$conn->exec("DELETE FROM adh_adhesion_client");
 
         $year = 2026;
@@ -180,7 +176,6 @@ class ReferralSourceTest extends TestCase
 
     public function testEditFormShowsReferralReadOnly(): void
     {
-        self::$conn->exec("DELETE FROM adh_alert_sent");
         self::$conn->exec("DELETE FROM adh_adhesion_client");
 
         $client = $this->createClient(['referral_source' => 'instagram']);

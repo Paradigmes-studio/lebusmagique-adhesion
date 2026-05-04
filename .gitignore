@@ -1,5 +1,6 @@
 config.php
 diag.php
+sync_brevo_once.php
 .idea/
 vendor/
 composer.lock

@@ -1,6 +1,6 @@
 <?php
 
-$current_version = 7;
+$current_version = 10;
 $in_memory = False;
 
 function get_in_memory($conf) {
@@ -88,34 +88,10 @@ function init_db_from_scratch($conn, $conf) {
 	$query = $conn->query(sprintf("CREATE TABLE adh_adhesion_type_description(adhesion_type INTEGER, lang VARCHAR(2), description TEXT, PRIMARY KEY(adhesion_type, lang), FOREIGN KEY fk_adh_adhesion_type_description_adh_adhesion_type(adhesion_type) REFERENCES adh_adhesion_type(id) ON DELETE CASCADE ON UPDATE CASCADE, FOREIGN KEY fk_adh_adhesion_type_description_lang(lang) REFERENCES adh_lang(id)) %s;", get_in_memory($conf)));
 
 	// table adh_adhesion_client
-	$conn->query(sprintf("CREATE TABLE adh_adhesion_client(id INTEGER AUTO_INCREMENT, last_name VARCHAR(200), first_name VARCHAR(200), email VARCHAR(200), adhesion_type VARCHAR(200), date_debut DATETIME, date_fin DATETIME, newsletter BINARY, referral_source VARCHAR(200), PRIMARY KEY(id)) %s;", get_in_memory($conf)));
+	$conn->query(sprintf("CREATE TABLE adh_adhesion_client(id INTEGER AUTO_INCREMENT, last_name VARCHAR(200), first_name VARCHAR(200), email VARCHAR(200), adhesion_type VARCHAR(200), date_debut DATETIME, date_fin DATETIME, newsletter BINARY, referral_source VARCHAR(200), edit_token CHAR(32) NULL, PRIMARY KEY(id), UNIQUE KEY idx_edit_token (edit_token)) %s;", get_in_memory($conf)));
 
-
-	$conn->query(sprintf("CREATE TABLE adh_mailchimp_tag(id INTEGER AUTO_INCREMENT, name VARCHAR(200), active BOOLEAN, PRIMARY KEY(id)) %s;", get_in_memory($conf)));
-
-	$conn->query(sprintf("CREATE TABLE adh_debug(id INTEGER AUTO_INCREMENT, in_progress BOOLEAN, PRIMARY KEY (id)) %s;", get_in_memory($conf))); 
+	$conn->query(sprintf("CREATE TABLE adh_debug(id INTEGER AUTO_INCREMENT, in_progress BOOLEAN, PRIMARY KEY (id)) %s;", get_in_memory($conf)));
 	$conn->query(sprintf("CREATE TABLE adh_debug_detail(id INTEGER AUTO_INCREMENT, debug INTEGER, request VARCHAR(100), get_ TEXT, post_ TEXT, PRIMARY KEY (id), FOREIGN KEY fk_debug_detail_debug(debug) REFERENCES adh_debug(id) ON DELETE CASCADE ON UPDATE CASCADE) %s;", get_in_memory($conf)));
-
-	$conn->query(sprintf("CREATE TABLE adh_alert_rule(
-		id INTEGER AUTO_INCREMENT,
-		name VARCHAR(200) NOT NULL,
-		trigger_type ENUM('before', 'on', 'after') NOT NULL,
-		trigger_days INTEGER NOT NULL DEFAULT 0,
-		email_template VARCHAR(200) NOT NULL,
-		active TINYINT(1) NOT NULL DEFAULT 1,
-		PRIMARY KEY(id)
-	) %s", get_in_memory($conf)));
-
-	$conn->query(sprintf("CREATE TABLE adh_alert_sent(
-		id INTEGER AUTO_INCREMENT,
-		alert_rule_id INTEGER NOT NULL,
-		adhesion_client_id INTEGER NOT NULL,
-		sent_at DATETIME NOT NULL,
-		PRIMARY KEY(id),
-		UNIQUE KEY uq_alert_sent (alert_rule_id, adhesion_client_id),
-		FOREIGN KEY fk_alert_sent_rule(alert_rule_id) REFERENCES adh_alert_rule(id) ON DELETE CASCADE,
-		FOREIGN KEY fk_alert_sent_client(adhesion_client_id) REFERENCES adh_adhesion_client(id) ON DELETE CASCADE
-	) %s", get_in_memory($conf)));
 
 	$conn->query(sprintf("CREATE TABLE adh_email_template(
 		id INTEGER AUTO_INCREMENT,
@@ -221,44 +197,36 @@ function migrate_5_6($conn, $conf) {
 }
 
 function migrate_6_7($conn, $conf) {
-	// Feature toggle: alerts disabled by default
-	$query = $conn->prepare("REPLACE INTO adh_param(id, value) VALUES ('alerts_enabled', '0')");
-	$query->execute();
-
-	// Default alert rules (inactive until feature is enabled)
-	// Find template IDs
-	$query = $conn->query("SELECT id, name FROM adh_email_template WHERE name IN ('Expiration proche', 'Adhésion expirée')");
-	$tpl_ids = [];
-	while ($row = $query->fetch()) {
-		$tpl_ids[$row['name']] = $row['id'];
-	}
-
-	if (isset($tpl_ids['Expiration proche'])) {
-		$query = $conn->prepare("INSERT INTO adh_alert_rule(name, trigger_type, trigger_days, email_template, active) VALUES (:name, :type, :days, :tpl, 1)");
-		$query->bindValue(':name', 'Relance 30 jours avant', PDO::PARAM_STR);
-		$query->bindValue(':type', 'before', PDO::PARAM_STR);
-		$query->bindValue(':days', 30, PDO::PARAM_INT);
-		$query->bindValue(':tpl', $tpl_ids['Expiration proche'], PDO::PARAM_STR);
-		$query->execute();
-
-		$query = $conn->prepare("INSERT INTO adh_alert_rule(name, trigger_type, trigger_days, email_template, active) VALUES (:name, :type, :days, :tpl, 1)");
-		$query->bindValue(':name', 'Alerte jour d\'expiration', PDO::PARAM_STR);
-		$query->bindValue(':type', 'on', PDO::PARAM_STR);
-		$query->bindValue(':days', 0, PDO::PARAM_INT);
-		$query->bindValue(':tpl', $tpl_ids['Expiration proche'], PDO::PARAM_STR);
-		$query->execute();
-	}
-
-	if (isset($tpl_ids['Adhésion expirée'])) {
-		$query = $conn->prepare("INSERT INTO adh_alert_rule(name, trigger_type, trigger_days, email_template, active) VALUES (:name, :type, :days, :tpl, 1)");
-		$query->bindValue(':name', 'Relance 7 jours après expiration', PDO::PARAM_STR);
-		$query->bindValue(':type', 'after', PDO::PARAM_STR);
-		$query->bindValue(':days', 7, PDO::PARAM_INT);
-		$query->bindValue(':tpl', $tpl_ids['Adhésion expirée'], PDO::PARAM_STR);
-		$query->execute();
-	}
-
+	// No-op: alert rules feature removed in v9 (Brevo automations take over).
 	return 7;
+}
+
+function migrate_7_8($conn, $conf) {
+	$conn->query("DROP TABLE IF EXISTS adh_mailchimp_tag");
+	return 8;
+}
+
+function migrate_8_9($conn, $conf) {
+	$conn->query("DROP TABLE IF EXISTS adh_alert_sent");
+	$conn->query("DROP TABLE IF EXISTS adh_alert_rule");
+	$query = $conn->prepare("DELETE FROM adh_param WHERE id = 'alerts_enabled'");
+	$query->execute();
+	return 9;
+}
+
+function migrate_9_10($conn, $conf) {
+	$conn->query("ALTER TABLE adh_adhesion_client ADD COLUMN edit_token CHAR(32) NULL");
+	$conn->query("ALTER TABLE adh_adhesion_client ADD UNIQUE KEY idx_edit_token (edit_token)");
+
+	$update = $conn->prepare("UPDATE adh_adhesion_client SET edit_token = :token WHERE id = :id");
+	$rows = $conn->query("SELECT id FROM adh_adhesion_client WHERE edit_token IS NULL");
+	while ($row = $rows->fetch()) {
+		$update->bindValue(':token', bin2hex(random_bytes(16)), PDO::PARAM_STR);
+		$update->bindValue(':id', (int)$row['id'], PDO::PARAM_INT);
+		$update->execute();
+	}
+
+	return 10;
 }
 
 function get_version($conn) {
@@ -301,6 +269,9 @@ function check_update($conn, $conf) {
 		if ($db_version == 4) { $db_version=migrate_4_5($conn, $conf); }
 		if ($db_version == 5) { $db_version=migrate_5_6($conn, $conf); }
 		if ($db_version == 6) { $db_version=migrate_6_7($conn, $conf); }
+		if ($db_version == 7) { $db_version=migrate_7_8($conn, $conf); }
+		if ($db_version == 8) { $db_version=migrate_8_9($conn, $conf); }
+		if ($db_version == 9) { $db_version=migrate_9_10($conn, $conf); }
 	}
 	set_version($conn, $db_version);
 }

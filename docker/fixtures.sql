@@ -5,12 +5,9 @@ SET NAMES utf8mb4;
 
 -- Clean existing data
 SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE adh_alert_sent;
-TRUNCATE TABLE adh_alert_rule;
 TRUNCATE TABLE adh_adhesion_client;
 TRUNCATE TABLE adh_adhesion_type_description;
 TRUNCATE TABLE adh_adhesion_type;
-TRUNCATE TABLE adh_mailchimp_tag;
 DELETE FROM adh_user WHERE login != 'admin';
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -45,12 +42,6 @@ INSERT INTO adh_adhesion_client (last_name, first_name, email, adhesion_type, da
 ('Blanc', 'Clara', 'clara.blanc@example.com', 'Adhésion à prix libre', '2025-12-15 00:00:00', '2026-12-15 00:00:00', 1, 'bouche_a_oreille'),
 ('Robin', 'Paul', 'paul.robin@example.com', 'Adhésion à prix libre', '2026-03-10 00:00:00', '2027-03-10 00:00:00', 1, 'passant'),
 ('Sancassani', 'Celine', 'jmsaliou79@gmail.com', 'Adhésion à prix libre', '2024-05-18 00:00:00', '2024-05-18 00:00:00', 0, NULL);
-
--- Mailchimp tags
-INSERT INTO adh_mailchimp_tag (name, active) VALUES
-('Adherent actif', 1),
-('Newsletter', 1),
-('Ancien adherent', 0);
 
 -- Extra admin user
 INSERT INTO adh_user (login, password) VALUES

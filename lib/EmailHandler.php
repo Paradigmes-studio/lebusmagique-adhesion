@@ -90,43 +90,6 @@ class EmailHandler {
 		}
 	}
 
-	public function send_alert($adhesionClient, $template_id, &$error) {
-		$error = "";
-
-		$tpl = $this->load_template($template_id);
-		if (!$tpl) {
-			$error = "Template not found";
-			return;
-		}
-
-		$subject = $this->replace_variables($tpl['subject'], $adhesionClient);
-		$body = $this->replace_variables($tpl['body'], $adhesionClient);
-
-		$email = new PHPMailer(true);
-		try {
-			$this->init_email_smtp($email);
-			$email->AddReplyTo($this->conf["adhesion_reply"], $this->conf["name_company"]);
-			$email->AddAddress($adhesionClient->email);
-			$email->Subject = $subject;
-			$email->isHTML(true);
-			$email->CharSet = "utf-8";
-			$email->Body = $body;
-			$email->Send();
-		} catch (\PHPMailer\PHPMailer\Exception $e) {
-			$error = $e->getMessage();
-		} catch (Exception $e) {
-			$error = $e->getMessage();
-		}
-	}
-
-	public function get_models() {
-		$query = $this->conn->query("SELECT id, name FROM adh_email_template ORDER BY name");
-		$models = [];
-		while ($res = $query->fetch()) {
-			$models[(int)$res['id']] = $res['name'];
-		}
-		return $models;
-	}
 }
 
 ?>

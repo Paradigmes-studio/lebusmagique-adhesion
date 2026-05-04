@@ -26,7 +26,7 @@ require_once("init.php");
 	$adhesionId = (int)($_GET['adhesionId'] ?? 0);
 
 	// Whitelist des pages internes autorisees
-	$allowedPages = ['main.php', 'createAdhesionClient.php', 'searchAdhesionClient.php', 'listAdhesionClient.php', 'login.php', 'tagMailchimp.php'];
+	$allowedPages = ['main.php', 'createAdhesionClient.php', 'searchAdhesionClient.php', 'listAdhesionClient.php', 'login.php'];
 	if (!in_array(parse_url($nextPage, PHP_URL_PATH), $allowedPages)) {
 		$nextPage = 'main.php';
 	}

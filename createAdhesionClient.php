@@ -114,7 +114,22 @@ if (!$new) {
 <div class="form-toggle">
 	<span>Recevoir la prog et les nouvelles du bus</span>
 	<?php
-		$checked = ((!$new && $adhesion_client->newsletter == 1) || ($new && ($_GET['subscribe'] ?? '') == "on")) ? "checked" : "";
+		if ($new) {
+			$is_subscribed = (($_GET['subscribe'] ?? '') == "on");
+		} else {
+			$is_subscribed = ($adhesion_client->newsletter == 1);
+			if (!empty($conf['brevoListIdNewsletter']) && !empty($adhesion_client->email)) {
+				require_once("lib/BrevoHandler.php");
+				$brevo = new BrevoHandler($conn, $conf);
+				if ($brevo->isConfigured()) {
+					$brevo_state = $brevo->isInList($adhesion_client->email, (int)$conf['brevoListIdNewsletter']);
+					if ($brevo_state !== null) {
+						$is_subscribed = $brevo_state;
+					}
+				}
+			}
+		}
+		$checked = $is_subscribed ? "checked" : "";
 	?>
 	<label class="switch"><input name="subscribe" type="checkbox" <?php echo $checked; ?>><span class="slider round"></span></label>
 </div>

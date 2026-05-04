@@ -16,7 +16,11 @@ class BrevoHandler {
 		if (!$this->isConfigured()) {
 			return ['ok' => false, 'msg' => 'Brevo API key not configured'];
 		}
+		$payload = $this->buildPayload($adhesion_client, $listIds, $unlinkListIds);
+		return $this->request('POST', 'https://api.brevo.com/v3/contacts', $payload);
+	}
 
+	public function buildPayload($adhesion_client, array $listIds, array $unlinkListIds = []): array {
 		$attributes = [
 			'PRENOM' => $adhesion_client->first_name ?? '',
 			'NOM' => $adhesion_client->last_name ?? '',
@@ -33,6 +37,9 @@ class BrevoHandler {
 		if (!empty($adhesion_client->date_fin)) {
 			$attributes['DATE_FIN'] = date('Y-m-d', strtotime($adhesion_client->date_fin));
 		}
+		if (!empty($adhesion_client->edit_token)) {
+			$attributes['EDIT_TOKEN'] = $adhesion_client->edit_token;
+		}
 
 		$payload = [
 			'email' => $adhesion_client->email,
@@ -45,8 +52,7 @@ class BrevoHandler {
 		if (!empty($unlinkListIds)) {
 			$payload['unlinkListIds'] = array_values(array_map('intval', $unlinkListIds));
 		}
-
-		return $this->request('POST', 'https://api.brevo.com/v3/contacts', $payload);
+		return $payload;
 	}
 
 	public function removeFromList($email, $listId) {
@@ -57,7 +63,42 @@ class BrevoHandler {
 		return $this->request('POST', $url, ['emails' => [$email]]);
 	}
 
-	private function request($method, $url, array $payload) {
+	public function getContact($email) {
+		if (!$this->isConfigured()) {
+			return ['ok' => false, 'msg' => 'Brevo API key not configured'];
+		}
+		if (empty($email)) {
+			return ['ok' => false, 'msg' => 'Empty email'];
+		}
+		$url = 'https://api.brevo.com/v3/contacts/' . rawurlencode($email);
+		$res = $this->request('GET', $url);
+		$res['listIds'] = $this->parseListIdsFromBody($res['body'] ?? '');
+		return $res;
+	}
+
+	public function isInList($email, $listId) {
+		if (empty($email) || empty($listId) || !$this->isConfigured()) {
+			return null;
+		}
+		$res = $this->getContact($email);
+		if ($res['ok']) {
+			return in_array((int)$listId, $res['listIds'] ?? [], true);
+		}
+		if ((int)($res['http'] ?? 0) === 404) {
+			return false;
+		}
+		return null;
+	}
+
+	public function parseListIdsFromBody($body): array {
+		$data = json_decode((string)$body, true);
+		if (!is_array($data) || !isset($data['listIds']) || !is_array($data['listIds'])) {
+			return [];
+		}
+		return array_values(array_map('intval', $data['listIds']));
+	}
+
+	private function request($method, $url, ?array $payload = null) {
 		$ch = curl_init($url);
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
 		curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -65,7 +106,9 @@ class BrevoHandler {
 			'content-type: application/json',
 			'api-key: ' . $this->conf['brevoApiKey'],
 		]);
-		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+		if ($payload !== null) {
+			curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
+		}
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 10);
 		$result = curl_exec($ch);

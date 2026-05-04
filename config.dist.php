@@ -22,11 +22,9 @@
 		"adhesion_reply"=>"contact@lebusmagiquelille.fr",
 		"programmer"=>"",
 
-		"apiKey"=>"",
-		"listId"=>"",
-
 		"brevoApiKey"=>"",
 		"brevoListIdAdhesion"=>3,
-		"brevoListIdNewsletter"=>0
+		"brevoListIdNewsletter"=>0,
+		"brevoSyncToken"=>""
 	);
  ?>

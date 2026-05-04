@@ -26,7 +26,10 @@ shell: ## Open a shell in the PHP container
 db: ## Open a MySQL shell
 	docker compose exec database mysql -u adhesion -padhesion adhesion
 
-test: ## Run PHPUnit tests in Docker
+test-db-init: ## Create/reset the isolated test database (adhesion_test)
+	docker compose exec -T database mysql -uroot -proot -e "DROP DATABASE IF EXISTS adhesion_test; CREATE DATABASE adhesion_test DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; GRANT ALL PRIVILEGES ON adhesion_test.* TO 'adhesion'@'%'; FLUSH PRIVILEGES;"
+
+test: ## Run PHPUnit tests in Docker (isolated DB: adhesion_test)
 	docker compose exec app bash -c "cd /var/www/html && composer install --quiet && vendor/bin/phpunit"
 
 fixtures: ## Load test fixtures into the database
@@ -36,4 +39,4 @@ reset-db: ## Destroy and recreate the database volume
 	docker compose down -v
 	@$(MAKE) up
 
-.PHONY: help install up down build logs shell db test fixtures reset-db
+.PHONY: help install up down build logs shell db test test-db-init fixtures reset-db

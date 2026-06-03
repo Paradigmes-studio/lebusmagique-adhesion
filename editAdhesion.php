@@ -1,5 +1,6 @@
 <?php
 require_once("db/mAdhesionClient.php");
+require_once("lib/AdhesionEdit.php");
 require_once("lib/BrevoHandler.php");
 require_once("init.php");
 
@@ -101,12 +102,13 @@ if ($token !== '') {
 
 		<?php
 			$end_date = date('Y-m-d', strtotime($adhesion->date_fin));
-			$still_valid = $end_date > date('Y-m-d');
+			$threshold = date('Y-m-d', strtotime('+' . RENEWAL_WINDOW_DAYS . ' days'));
+			$renewable = $end_date <= $threshold;
 		?>
-		<?php if ($still_valid): ?>
+		<?php if (!$renewable): ?>
 			<div class="form-section">
 				<div style="padding: 10px; background: #f5f5f5; border-radius: 8px;">
-					Ton adhésion est encore valide jusqu'au <?php echo date('d/m/Y', strtotime($adhesion->date_fin)); ?>. Tu pourras la renouveler à partir de cette date.
+					Ton adhésion est valide jusqu'au <?php echo date('d/m/Y', strtotime($adhesion->date_fin)); ?>. Tu pourras la renouveler à partir du <?php echo date('d/m/Y', strtotime($adhesion->date_fin . ' -' . RENEWAL_WINDOW_DAYS . ' days')); ?>.
 				</div>
 			</div>
 		<?php else: ?>
@@ -117,7 +119,7 @@ if ($token !== '') {
 			<input type="text" maxlength="200" name="code_valid" value="" placeholder="Code de validation (demande au bar !)" required/>
 		</div>
 
-		<p><input type="submit" id="submit" value="<?php echo $still_valid ? 'Enregistrer' : 'Renouveler'; ?>"/></p>
+		<p><input type="submit" id="submit" value="<?php echo $renewable ? 'Renouveler' : 'Enregistrer'; ?>"/></p>
 	</form>
 <?php endif; ?>
 

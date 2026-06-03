@@ -198,11 +198,56 @@ class AdhesionEditTest extends TestCase
             $this->typeManager
         );
         $this->assertFalse($result['ok']);
-        $this->assertStringContainsString('encore valide', strtolower($result['error']));
+        $this->assertStringContainsString('renouvelable à partir du', strtolower($result['error']));
 
         $saved = new AdhesionClient();
         $this->clientManager->read($c->id, $saved);
         $this->assertEquals($futureEnd, $saved->date_fin);
+    }
+
+    public function testProcessEditRenewAllowedWithinRenewalWindow(): void
+    {
+        $endInWindow = date('Y-m-d', strtotime('+10 days')) . ' 00:00:00';
+        $c = $this->createAdhesion('window@example.com', $endInWindow);
+
+        $result = process_edit_post(
+            [
+                'email' => $c->email,
+                'code_valid' => $this->validDailyCode(),
+                'renew' => 'on',
+            ],
+            $c->id,
+            $this->clientManager,
+            $this->typeManager
+        );
+        $this->assertTrue($result['ok']);
+        $this->assertTrue($result['renewed']);
+
+        $saved = new AdhesionClient();
+        $this->clientManager->read($c->id, $saved);
+        $today = date('Y-m-d');
+        $endDate = date('Y-m-d', strtotime('+365 days'));
+        $this->assertEquals($today . ' 00:00:00', $saved->date_debut);
+        $this->assertEquals($endDate . ' 00:00:00', $saved->date_fin);
+    }
+
+    public function testProcessEditRenewAllowedOnWindowBoundary(): void
+    {
+        $endOnBoundary = date('Y-m-d', strtotime('+' . RENEWAL_WINDOW_DAYS . ' days')) . ' 00:00:00';
+        $c = $this->createAdhesion('boundary@example.com', $endOnBoundary);
+
+        $result = process_edit_post(
+            [
+                'email' => $c->email,
+                'code_valid' => $this->validDailyCode(),
+                'renew' => 'on',
+            ],
+            $c->id,
+            $this->clientManager,
+            $this->typeManager
+        );
+        $this->assertTrue($result['ok']);
+        $this->assertTrue($result['renewed']);
     }
 
     public function testProcessEditRenewAllowedOnExpiryDay(): void

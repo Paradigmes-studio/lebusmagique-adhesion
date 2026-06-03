@@ -1,5 +1,7 @@
 <?php
 
+const RENEWAL_WINDOW_DAYS = 15;
+
 function regenerate_adhesion_card($adhesion): bool {
 	$carteFile = 'res/Carte' . (int)$adhesion->id . '.jpg';
 	if (file_exists($carteFile)) {
@@ -93,8 +95,10 @@ function process_edit_post(array $input, int $session_id, mAdhesionClient $clien
 	if ($renew) {
 		$today = date('Y-m-d');
 		$endDate = date('Y-m-d', strtotime($adhesion->date_fin));
-		if ($endDate > $today) {
-			return ['ok' => false, 'error' => 'Ton adhésion est encore valide jusqu\'au ' . date('d/m/Y', strtotime($adhesion->date_fin)) . ', tu ne peux pas la renouveler pour le moment.'];
+		$threshold = date('Y-m-d', strtotime('+' . RENEWAL_WINDOW_DAYS . ' days'));
+		if ($endDate > $threshold) {
+			$renewableFrom = date('d/m/Y', strtotime($adhesion->date_fin . ' -' . RENEWAL_WINDOW_DAYS . ' days'));
+			return ['ok' => false, 'error' => 'Ton adhésion est valide jusqu\'au ' . date('d/m/Y', strtotime($adhesion->date_fin)) . ', renouvelable à partir du ' . $renewableFrom . '.'];
 		}
 		$type = new AdhesionType();
 		try {
